@@ -1,0 +1,11 @@
+__pycache__
+*.pyc
+*.log
+*.log.*
+wandb
+output
+.vscode
+.ipynb_checkpoints
+.env
+*.code-workspace
+datasets/raw/
