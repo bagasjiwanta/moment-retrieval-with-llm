@@ -1,5 +1,7 @@
 einops
 einops_exts
+av
+pyav
 sentencepiece
 protobuf
 transformers

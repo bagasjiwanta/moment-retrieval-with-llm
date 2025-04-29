@@ -12,3 +12,5 @@ datasets/raw/
 datasets/val/
 *.tar.gz
 *.zip
+*.pt
+*.pth
