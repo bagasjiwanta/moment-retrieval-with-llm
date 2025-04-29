@@ -524,8 +524,11 @@ def load_checkpoint(args, model, pretrained=False):
     if args.rank == 0:
         print(f"Loading checkpoint from {ckpt_path}")
     checkpoint = torch.load(ckpt_path, map_location="cpu")
-    msd = checkpoint.pop("model_state_dict")
-    msd = {k.replace("module.", ""): v for k, v in msd.items()}
+    # if isinstance(checkpoint, dict):
+    #     print(checkpoint.keys())
+    # msd = checkpoint.pop("model_state_dict")
+    # msd = {k.replace("module.", ""): v for k, v in msd.items()}
+    msd = checkpoint
 
     if 'vision_tokenizer.latents' in msd.keys():
         msd_current = model.state_dict()

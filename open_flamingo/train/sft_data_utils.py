@@ -19,7 +19,8 @@ import conversation as conversation_lib
 from data_utils import DataInfo
 
 from open_flamingo.train.any_res_data_utils import process_anyres_image
-from data_configs.data_paths import IMAGE_FOLDER_DICT_GCP
+# from data_configs.data_paths import IMAGE_FOLDER_DICT_GCP  # What's this??
+from data_configs.data_paths import IMAGE_FOLDER_DICT
 
 
 LOGDIR = "."
@@ -30,11 +31,12 @@ DEFAULT_IMAGE_TOKEN = "<image>"
 
 
 def get_image_fullpath(image_file):
-    image_file_fp = None
-    for k, v in IMAGE_FOLDER_DICT_GCP.items():
-        if k in image_file:
-            image_file_fp = image_file.replace(k, v)
-            break
+    image_file_fp = f"/workspace/unlabeled2017/{image_file}"
+    # for k, v in IMAGE_FOLDER_DICT_GCP.items(): 
+    # for k, v in IMAGE_FOLDER_DICT.items():
+    #     if k in image_file:
+    #         image_file_fp = image_file.replace(k, v)
+    #         break
     if image_file_fp is None:
         print(f"File not found: {image_file}")
         exit(0)

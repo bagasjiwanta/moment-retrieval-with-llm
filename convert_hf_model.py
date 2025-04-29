@@ -14,7 +14,7 @@ def parse_args():
     parser.add_argument(
         "--dest_fn",
         type=str,
-        default="./base_model_weight/xgen-mm-phi3-mini-base-r-v1.5.pt",
+        default="./base_model_weight/xgen-mm-phi3-mini-instruct-interleave-r-v1.5.pt",
     )
     args = parser.parse_args()
     return args
@@ -24,7 +24,7 @@ if __name__ == "__main__":
     args = parse_args()
 
     # Load model from HF hub.
-    model_name_or_path = "Salesforce/xgen-mm-phi3-mini-base-r-v1.5"
+    model_name_or_path = "Salesforce/xgen-mm-phi3-mini-instruct-interleave-r-v1.5"
     model = AutoModelForVision2Seq.from_pretrained(
         model_name_or_path, trust_remote_code=True
     )
