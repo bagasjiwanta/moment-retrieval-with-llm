@@ -1,2 +1,6 @@
+einops
+einops_exts
+sentencepiece
+protobuf
 transformers
 accelerate
