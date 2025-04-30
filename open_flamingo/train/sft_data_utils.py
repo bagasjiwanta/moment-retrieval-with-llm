@@ -31,8 +31,9 @@ DEFAULT_IMAGE_TOKEN = "<image>"
 
 
 def get_image_fullpath(image_file):
-    image_file_fp = f"/workspace/unlabeled2017/{image_file}"
+    image_file_fp = f"/workspace/train2017/{image_file}"
     # for k, v in IMAGE_FOLDER_DICT_GCP.items(): 
+    # image_file_fp = None
     # for k, v in IMAGE_FOLDER_DICT.items():
     #     if k in image_file:
     #         image_file_fp = image_file.replace(k, v)

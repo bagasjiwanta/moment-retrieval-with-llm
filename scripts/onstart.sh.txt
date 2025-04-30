@@ -1,7 +1,0 @@
-export HF_HOME="/workspace/.cache/huggingface"
-
-apt update
-
-pip install -r requirements.txt
-
-huggingface-cli download microsoft/Phi-3-mini-4k-instruct

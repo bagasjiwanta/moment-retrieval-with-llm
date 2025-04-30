@@ -34,6 +34,31 @@ from transformers import (
     get_cosine_schedule_with_warmup,
     get_linear_schedule_with_warmup,
 )
+from peft import LoraConfig, get_peft_model
+
+def find_all_linear_names(model):
+    """
+    Returns a list of all nn.Linear module names in the model
+    excluding any names containing specified multimodal keywords and 'lm_head'.
+    This list can be passed directly as target_modules for LoRA.
+    """
+    cls = torch.nn.Linear
+    multimodal_keywords = ['vision_encoder', 'vision_tokenizer']
+    lora_module_names = []
+
+    for name, module in model.named_modules():
+        # skip multimodal or tokenizer-specific submodules if desired
+        if any(keyword in name for keyword in multimodal_keywords):
+            continue
+        # collect full module path for nn.Linear layers
+        if isinstance(module, cls):
+            # skip lm_head for 16-bit compatibility
+            if name.endswith('lm_head'):
+                continue
+            lora_module_names.append(name)
+
+    return lora_module_names
+            
 
 def parse_tuple_list(input_string):
     try:
@@ -251,6 +276,7 @@ def main():
 
 
     args = parser.parse_args()
+    print(args.anyres_grids)
 
 
     if args.save_checkpoints_to_wandb and not args.report_to_wandb:
@@ -280,6 +306,7 @@ def main():
             "image_aspect_ratio": args.image_aspect_ratio,
             "num_vision_tokens": args.num_vision_tokens,
             "anyres_patch_sampling": args.anyres_patch_sampling,
+            "anyres_grids": args.anyres_grids   # must insert here 
         }
     else:
         additional_kwargs = {}
@@ -297,6 +324,11 @@ def main():
         **additional_kwargs,
     )
     random_seed(args.seed, args.rank)
+    # print("__________________________________")
+    # for name, module in model.named_modules():
+    #     if isinstance(module, torch.nn.Linear):
+    #         print(name, module)
+    # print("__________________________________")
 
     # Initialize wandb logging
     now = datetime.now().strftime("%Y%m%d%H%M")[:-1]
@@ -332,6 +364,20 @@ def main():
         if args.pretrained is not None:
             _, _, checkpoint = load_checkpoint(args, model, pretrained=True)
             print("Finished loading checkpoint...")
+    
+    if False:
+        linear_names = find_all_linear_names(model)
+        print(linear_names)
+        lora_config = LoraConfig(
+            r=16,
+            lora_alpha=16,
+            lora_dropout=0.05,
+            bias="none",
+            target_modules=find_all_linear_names(model),
+            init_lora_weights='gaussian',
+        )
+        model = get_peft_model(model, lora_config)
+        model.print_trainable_parameters()
 
     # Initialize gradient checkpointing
     if args.gradient_checkpointing:
@@ -388,7 +434,7 @@ def main():
                                                                    data_args=args)
     # Update anyres grid.
     args.anyres_grids = train_dataset.dataloader.dataset.anyres_grids
-    model.anyres_grids = args.anyres_grids
+    # model.anyres_grids = args.anyres_grids      # this does not seem to work idk, the grids are inserted above
 
     # TODO: Summarize training data stats (dataset, portion, etc.)
     total_training_steps = (

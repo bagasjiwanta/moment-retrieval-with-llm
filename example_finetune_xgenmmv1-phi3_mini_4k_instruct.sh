@@ -1,4 +1,5 @@
 #!/bin/bash
+export HF_HOME="/workspace/.cache/huggingface"
 
 datamix=$1
 
@@ -11,7 +12,7 @@ if [[ ! -e $exp_name ]]; then
     mkdir $exp_name
 fi
 
-pretrained_ckpt="/workspace/LAVIS/base_model_weight/xgen-mm-phi3-mini-instruct-interleave-r-v1.5.pt"
+pretrained_ckpt="/workspace/LAVIS/base_model_weight/xgen-mm-phi3-mini-base-r-v1.5.pt"
 
 export PYTHONPATH="$PWD" 
 
@@ -27,11 +28,11 @@ python -m torch.distributed.run --nproc_per_node=1 --nnodes=1 --master_port 9650
     --data_path ${data_path} \
     --data_sampler_group_by_length \
     --image_aspect_ratio anyres --anyres_patch_sampling \
-    --batch_size 4 \
-    --fsdp \
+    --anyres_grids "(384,768),(768,384),(768,768)" \
+    --batch_size 1 \
+    --gradient_accumulation_steps 8 \
     --no_save_optim_state \
     --gradient_checkpointing \
-    --fsdp_sharding_strategy hybrid \
     --workers 2 \
     --num_epochs 1 \
     --warmup_steps  2000 \

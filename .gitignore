@@ -7,11 +7,11 @@
 **/*.csv
 **/*.pkl
 **/*/*.jpg
-**/*.sh
+# **/*.sh
 **/*temp.yaml
 
 # Data recipe.
-**/*.yaml
+# **/*.yaml
 *.yml
 
 *.ipynb

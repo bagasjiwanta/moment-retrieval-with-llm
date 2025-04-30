@@ -1,3 +1,3 @@
 IMAGE_FOLDER_DICT = {
-    "train2017": "/workspace/unlabeled2017",
+    "detail_23k": "/workspace/train2017",
 }

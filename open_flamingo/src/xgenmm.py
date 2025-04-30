@@ -22,6 +22,7 @@ class XGenMMPerceiver(VLMWithLanguageStream):
         image_aspect_ratio: str = 'anyres',
         anyres_patch_sampling: bool = True, 
         num_vision_tokens: int = 128,
+        anyres_grids: list[int] = None
     ):
         """
         Args:
@@ -55,7 +56,8 @@ class XGenMMPerceiver(VLMWithLanguageStream):
         )
         self.image_aspect_ratio = image_aspect_ratio
         self.anyres_patch_sampling = anyres_patch_sampling
-        self.anyres_grids = None
+        # self.anyres_grids = None
+        self.anyres_grids = anyres_grids
 
     def set_trainable(self):
         """
