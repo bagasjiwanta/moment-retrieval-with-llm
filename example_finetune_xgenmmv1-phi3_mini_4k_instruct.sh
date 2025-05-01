@@ -2,8 +2,8 @@
 export HF_HOME="/workspace/.cache/huggingface"
 
 datamix=$1
-
-exp_name="finetune-xgenmmv1-phi3_4k_instruct-${datamix}"
+exp_n=$2
+exp_name="finetune-xgenmmv1-phi3_4k_instruct-${exp_n}"
 
 
 data_path="data_configs/${datamix}.yaml"
@@ -23,12 +23,12 @@ python -m torch.distributed.run --nproc_per_node=1 --nnodes=1 --master_port 9650
     --vision_encoder_path google/siglip-so400m-patch14-384 \
     --vision_encoder_pretrained google \
     --model_family 'xgenmm_v1' \
-    --num_vision_tokens 32 \
+    --num_vision_tokens 128 \
     --pretrained ${pretrained_ckpt} \
     --data_path ${data_path} \
     --data_sampler_group_by_length \
     --image_aspect_ratio anyres --anyres_patch_sampling \
-    --anyres_grids "(384,768),(768,384),(768,768)" \
+    --anyres_grids "(1,2),(2,1),(2,2),(3,1),(1,3)" \
     --batch_size 1 \
     --gradient_accumulation_steps 8 \
     --no_save_optim_state \

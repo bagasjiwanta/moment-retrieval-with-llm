@@ -555,6 +555,7 @@ def load_checkpoint(args, model, pretrained=False):
             **args.fsdp_checkpoint_config,
         )
     result = model.load_state_dict(msd, strict=False)
+    torch.cuda.empty_cache()
     # Print missing and unexpected keys
     print("Missing keys:", result.missing_keys)
     print("Unexpected keys:", result.unexpected_keys)

@@ -15,8 +15,8 @@ import transformers
 
 from PIL import Image
 
-import conversation as conversation_lib
-from data_utils import DataInfo
+import open_flamingo.train.conversation as conversation_lib
+from open_flamingo.train.data_utils import DataInfo
 
 from open_flamingo.train.any_res_data_utils import process_anyres_image
 # from data_configs.data_paths import IMAGE_FOLDER_DICT_GCP  # What's this??

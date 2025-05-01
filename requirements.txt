@@ -1,18 +1,19 @@
 einops
 einops-exts
 transformers
+accelerate
 # torch
-huggingface_hub
-huggingface_hub[cli]
+huggingface-hub
+huggingface-hub[cli]
 pillow
 open_clip_torch
 protobuf
 sentencepiece
 omegaconf
-flash-attn>=0.2.3
+# flash-attn>=0.2.3
 torchvision
 braceexpand
 webdataset
 tqdm
 wandb
-flash-attn
+# flash-attn

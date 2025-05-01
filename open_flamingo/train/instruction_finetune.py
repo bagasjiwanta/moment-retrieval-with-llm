@@ -43,7 +43,7 @@ def find_all_linear_names(model):
     This list can be passed directly as target_modules for LoRA.
     """
     cls = torch.nn.Linear
-    multimodal_keywords = ['vision_encoder', 'vision_tokenizer']
+    multimodal_keywords = ['vision_encoder']
     lora_module_names = []
 
     for name, module in model.named_modules():
@@ -323,6 +323,7 @@ def main():
         verbose=(args.rank == 0),
         **additional_kwargs,
     )
+    print("model", model.anyres_grids)
     random_seed(args.seed, args.rank)
     # print("__________________________________")
     # for name, module in model.named_modules():
@@ -365,7 +366,7 @@ def main():
             _, _, checkpoint = load_checkpoint(args, model, pretrained=True)
             print("Finished loading checkpoint...")
     
-    if False:
+    if True:
         linear_names = find_all_linear_names(model)
         print(linear_names)
         lora_config = LoraConfig(
@@ -394,7 +395,7 @@ def main():
         )
         print("Finished FSDP wrapping...")
     else:
-        model = model.to(device_id)
+        model = model.to(device_id).to(torch.bfloat16)
         distributed_model = DDP(model, device_ids=[device_id])
 
     # Initialize optimizer
@@ -433,8 +434,9 @@ def main():
                                                                    image_processor=image_processor, 
                                                                    data_args=args)
     # Update anyres grid.
+    print("dataloader", train_dataset.dataloader.dataset.anyres_grids)
     args.anyres_grids = train_dataset.dataloader.dataset.anyres_grids
-    # model.anyres_grids = args.anyres_grids      # this does not seem to work idk, the grids are inserted above
+    model.anyres_grids = args.anyres_grids      # this does not seem to work idk, the grids are inserted above
 
     # TODO: Summarize training data stats (dataset, portion, etc.)
     total_training_steps = (
