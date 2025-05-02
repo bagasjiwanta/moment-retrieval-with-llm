@@ -419,7 +419,7 @@ class LazySupervisedDataset(Dataset):
             image_file = sources[0]['image']
             if isinstance(image_file, list):
                 # FIXME: Skipping samples with more than 4 images to avoid OOM issue.
-                if len(image_file) > 4:
+                if len(image_file) > 16:
                     return self.__getitem__(i+1)
                 image = []
                 img_size = []
