@@ -8,4 +8,7 @@ output
 .ipynb_checkpoints
 .env
 *.code-workspace
-datasets/raw/
+*.tar.gz
+*.zip
+*.pt
+*.pth
