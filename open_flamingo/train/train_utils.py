@@ -75,9 +75,7 @@ def train_one_epoch(
             attention_mask = attention_mask.to(device_id, non_blocking=True)
 
             # save some metadata for logging
-            batch_metadata_to_log[
-                f"{datasets[dataset_ix].name}_num_tokens"
-            ] = attention_mask.sum().item()
+            batch_metadata_to_log[f"{datasets[dataset_ix].name}_num_tokens"] = attention_mask.sum().item()
             batch_metadata_to_log[f"{datasets[dataset_ix].name}_num_images"] = (
                 (input_ids == unwrap_model(model).media_token_id).sum().item()
             )
@@ -108,9 +106,7 @@ def train_one_epoch(
         for i in range(labels.shape[0]):
             # remove loss for any token before the first <image> token
             label_idx = 0
-            while (
-                label_idx < labels.shape[1] and labels[i][label_idx] != media_token_id
-            ):
+            while label_idx < labels.shape[1] and labels[i][label_idx] != media_token_id:
                 labels[i][label_idx] = -100
                 label_idx += 1
 
@@ -118,10 +114,7 @@ def train_one_epoch(
             endofchunk_idxs = torch.where(labels[i] == endofchunk_token_id)[0]
             for endofchunk_idx in endofchunk_idxs:
                 token_idx = endofchunk_idx + 1
-                while (
-                    token_idx < labels.shape[1]
-                    and labels[i][token_idx] != media_token_id
-                ):
+                while token_idx < labels.shape[1] and labels[i][token_idx] != media_token_id:
                     labels[i][token_idx] = -100
                     token_idx += 1
 
@@ -150,29 +143,19 @@ def train_one_epoch(
         divided_loss_mmc4 = loss_mmc4 / args.gradient_accumulation_steps
         (divided_loss_mmc4 * args.loss_multiplier_mmc4).backward()
 
-        if (not args.freeze_lm_embeddings) and (
-            not args.fsdp or args.fsdp_use_orig_params
-        ):
+        if (not args.freeze_lm_embeddings) and (not args.fsdp or args.fsdp_use_orig_params):
             # Mask gradients for input embeddings s.t. we only update the added tokens <image> and <|endofchunk|>
             if args.fsdp:
                 embed_grad = model.lang_encoder.get_input_embeddings().weight.grad
             else:
-                embed_grad = (
-                    model.module.lang_encoder.get_input_embeddings().weight.grad
-                )
+                embed_grad = model.module.lang_encoder.get_input_embeddings().weight.grad
             zero_mask = torch.zeros_like(embed_grad)
             zero_mask[media_token_id] = torch.ones_like(zero_mask[media_token_id])
-            zero_mask[endofchunk_token_id] = torch.ones_like(
-                zero_mask[endofchunk_token_id]
-            )
+            zero_mask[endofchunk_token_id] = torch.ones_like(zero_mask[endofchunk_token_id])
             if args.fsdp:
-                model.lang_encoder.get_input_embeddings().weight.grad = (
-                    embed_grad * zero_mask
-                )
+                model.lang_encoder.get_input_embeddings().weight.grad = embed_grad * zero_mask
             else:
-                model.module.lang_encoder.get_input_embeddings().weight.grad = (
-                    embed_grad * zero_mask
-                )
+                model.module.lang_encoder.get_input_embeddings().weight.grad = embed_grad * zero_mask
 
         # clip gradient norm
         if args.fsdp:
@@ -181,9 +164,7 @@ def train_one_epoch(
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
         # step optimizer and log
-        if (((step_num + 1) % args.gradient_accumulation_steps) == 0) or (
-            step_num == num_batches_per_epoch - 1
-        ):
+        if (((step_num + 1) % args.gradient_accumulation_steps) == 0) or (step_num == num_batches_per_epoch - 1):
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad(set_to_none=True)
@@ -221,6 +202,7 @@ def train_one_epoch(
                 f"Step {step_num+1}/{num_batches_per_epoch} of epoch {epoch+1}/{args.num_epochs} complete. Losses: "
                 + "// ".join([f"{k}: {v:.3f}" for k, v in losses_to_log.items()])
             )
+
 
 def finetune_one_epoch(
     args,
@@ -265,12 +247,15 @@ def finetune_one_epoch(
     end = time.time()
 
     # loop through the batches in this epoch
-    for step_num, samples in tqdm(enumerate(dataset.dataloader),
+    iterator = tqdm(
+        enumerate(dataset.dataloader),
         disable=args.rank != 0,
         total=total_training_steps,
         initial=epoch * num_batches_per_epoch,
-    ):
-    # for step_num, samples in enumerate(dataset.dataloader):
+    )
+
+    for step_num, samples in iterator:
+        # for step_num, samples in enumerate(dataset.dataloader):
         if step_num < resume_from_step:
             # Jump to the resume step.
             continue
@@ -290,9 +275,7 @@ def finetune_one_epoch(
         labels = samples["labels"].to(device_id, non_blocking=True)
 
         # save some metadata for logging
-        batch_metadata_to_log[
-            f"{dataset.name}_num_tokens"
-        ] = attention_mask.sum().item()
+        batch_metadata_to_log[f"{dataset.name}_num_tokens"] = attention_mask.sum().item()
         batch_metadata_to_log[f"{dataset.name}_num_images"] = (
             (input_ids == unwrap_model(model).media_token_id).sum().item()
         )
@@ -302,13 +285,14 @@ def finetune_one_epoch(
             model=model,
             tokenizer=tokenizer,
             images=images,
-            image_size=samples['image_size'],
+            image_size=samples["image_size"],
             input_ids=input_ids,
             attention_mask=attention_mask,
             labels=labels,
             autocast=autocast,
         )
         losses_to_log["train_loss"] = loss.item()
+        # iterator.write(f"loss={loss.item()}")
         divided_loss = loss / args.gradient_accumulation_steps
         divided_loss.backward()
 
@@ -317,7 +301,6 @@ def finetune_one_epoch(
             del divided_loss
             optimizer.zero_grad(set_to_none=True)
             continue
-
 
         # FIXME: Where are the special tokens added/defined?
         # if (not args.freeze_lm_embeddings) and (
@@ -351,9 +334,7 @@ def finetune_one_epoch(
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
         # step optimizer and log
-        if (((step_num + 1) % args.gradient_accumulation_steps) == 0) or (
-            step_num == num_batches_per_epoch - 1
-        ):
+        if (((step_num + 1) % args.gradient_accumulation_steps) == 0) or (step_num == num_batches_per_epoch - 1):
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad(set_to_none=True)
@@ -384,7 +365,7 @@ def finetune_one_epoch(
                 )
                 step_time_m.reset()
                 data_time_m.reset()
-        
+
         # dist.barrier()
 
         # Log loss to console
@@ -393,7 +374,7 @@ def finetune_one_epoch(
                 f"Step {step_num+1}/{num_batches_per_epoch} of epoch {epoch+1}/{args.num_epochs} complete. Losses: "
                 + "// ".join([f"{k}: {v:.3f}" for k, v in losses_to_log.items()])
             )
-        if ((step_num + 1) % args.checkpoint_steps == 0):
+        if (step_num + 1) % args.checkpoint_steps == 0:
             save_checkpoint(model, optimizer, lr_scheduler, epoch, args, step=step_num)
 
 
@@ -404,9 +385,7 @@ def get_autocast(precision, cache_enabled=True):
     if precision == "amp":
         return torch.cuda.amp.autocast(cache_enabled=cache_enabled)
     elif precision == "amp_bfloat16" or precision == "amp_bf16":
-        return lambda: torch.cuda.amp.autocast(
-            dtype=torch.bfloat16, cache_enabled=cache_enabled
-        )
+        return lambda: torch.cuda.amp.autocast(dtype=torch.bfloat16, cache_enabled=cache_enabled)
     else:
         return suppress
 
@@ -467,21 +446,15 @@ def compute_throughput(
         log[f"{dataset.name}_samples_per_second_per_gpu"] = (
             args.gradient_accumulation_steps * dataset.batch_size / step_time_m.val
         )
-        log[f"{dataset.name}_samples_per_second"] = (
-            log[f"{dataset.name}_samples_per_second_per_gpu"] * args.world_size
-        )
+        log[f"{dataset.name}_samples_per_second"] = log[f"{dataset.name}_samples_per_second_per_gpu"] * args.world_size
         log[f"{dataset.name}_tokens_per_second_per_gpu"] = (
-            args.gradient_accumulation_steps
-            * batch_metadata[f"{dataset.name}_num_tokens"]
-            / step_time_m.val
+            args.gradient_accumulation_steps * batch_metadata[f"{dataset.name}_num_tokens"] / step_time_m.val
         )
         log[f"{dataset.name}_tokens_per_second"] = (
             log[f"{dataset.name}_tokens_per_second_per_gpu"] * args.world_size
         )  # this is an estimate based on rank 0
         log[f"{dataset.name}_images_per_second_per_gpu"] = (
-            args.gradient_accumulation_steps
-            * batch_metadata[f"{dataset.name}_num_images"]
-            / step_time_m.val
+            args.gradient_accumulation_steps * batch_metadata[f"{dataset.name}_num_images"] / step_time_m.val
         )
         log[f"{dataset.name}_images_per_second"] = (
             log[f"{dataset.name}_images_per_second_per_gpu"] * args.world_size
@@ -504,9 +477,7 @@ def find_most_recent_checkpoint(args):
         print(f"Found no checkpoints for run {args.run_name}.")
         resume_from_checkpoint = None
     else:
-        resume_from_checkpoint = sorted(
-            checkpoint_list, key=lambda x: int(x.split("_")[-1].split(".")[0])
-        )[-1]
+        resume_from_checkpoint = sorted(checkpoint_list, key=lambda x: int(x.split("_")[-1].split(".")[0]))[-1]
         print(f"Found checkpoint {resume_from_checkpoint} for run {args.run_name}.")
     return resume_from_checkpoint
 
@@ -530,10 +501,10 @@ def load_checkpoint(args, model, pretrained=False):
     # msd = {k.replace("module.", ""): v for k, v in msd.items()}
     msd = checkpoint
 
-    if 'vision_tokenizer.latents' in msd.keys():
+    if "vision_tokenizer.latents" in msd.keys():
         msd_current = model.state_dict()
-        if msd_current['vision_tokenizer.latents'].shape != msd['vision_tokenizer.latents'].shape:
-            msd["vision_tokenizer.latents"] = msd_current['vision_tokenizer.latents'] # Random re-init.
+        if msd_current["vision_tokenizer.latents"].shape != msd["vision_tokenizer.latents"].shape:
+            msd["vision_tokenizer.latents"] = msd_current["vision_tokenizer.latents"]  # Random re-init.
 
     # remove any module with vision_encoder in the name
     # msd = {k: v for k, v in msd.items() if "vision_encoder" not in k}
@@ -542,10 +513,10 @@ def load_checkpoint(args, model, pretrained=False):
         resume_from_epoch = checkpoint["epoch"] + 1
     else:
         resume_from_epoch = None
-    
-    if 'step' in checkpoint and checkpoint["step"] is not None:
+
+    if "step" in checkpoint and checkpoint["step"] is not None:
         resume_from_step = checkpoint["step"] + 1
-        resume_from_epoch = checkpoint["epoch"] # Resume from prev epoch at the given step.
+        resume_from_epoch = checkpoint["epoch"]  # Resume from prev epoch at the given step.
     else:
         resume_from_step = 0
 
@@ -559,8 +530,9 @@ def load_checkpoint(args, model, pretrained=False):
     # Print missing and unexpected keys
     print("Missing keys:", result.missing_keys)
     print("Unexpected keys:", result.unexpected_keys)
-    
+
     return resume_from_epoch, resume_from_step, checkpoint
+
 
 def filter_state_dict_to_trainable(model, state_dict):
     """
@@ -580,13 +552,8 @@ def filter_state_dict_to_trainable(model, state_dict):
             else:
                 print(f"WARNING: filtering but {name} not in state_dict")
     # second, remove additional duplicate params
-    duplicate = lambda k: (
-        "lang_model.old_decoder_blocks" in k
-        or "lang_model.gated_cross_attn_layers" in k
-    )
-    filtered_dict = {
-        key: value for key, value in state_dict.items() if not duplicate(key)
-    }
+    duplicate = lambda k: ("lang_model.old_decoder_blocks" in k or "lang_model.gated_cross_attn_layers" in k)
+    filtered_dict = {key: value for key, value in state_dict.items() if not duplicate(key)}
     return filtered_dict
 
 
@@ -594,7 +561,7 @@ def save_checkpoint(model, optimizer, lr_scheduler, epoch, args, step=None):
     """
     Save training checkpoint with model, optimizer, and lr_scheduler state.
     """
-    torch.cuda.empty_cache() # (Sometimes this is necessary to avoid OOM errors when saving checkpoints)
+    torch.cuda.empty_cache()  # (Sometimes this is necessary to avoid OOM errors when saving checkpoints)
 
     if args.fsdp:
         FSDP.set_state_dict_type(
@@ -621,8 +588,8 @@ def save_checkpoint(model, optimizer, lr_scheduler, epoch, args, step=None):
             "lr_scheduler_state_dict": lr_scheduler.state_dict(),
         }
         if args.no_save_optim_state and step is None:
-            del checkpoint_dict['optimizer_state_dict']
-            del checkpoint_dict['lr_scheduler_state_dict']
+            del checkpoint_dict["optimizer_state_dict"]
+            del checkpoint_dict["lr_scheduler_state_dict"]
 
         if step is not None:
             save_name = f"{args.run_name}/checkpoint_{step}.pt"
@@ -639,7 +606,5 @@ def save_checkpoint(model, optimizer, lr_scheduler, epoch, args, step=None):
             else:
                 checkpoint_list = glob.glob(f"{args.run_name}/checkpoint_*.pt")
                 if len(checkpoint_list) > 1:
-                    last_checkpoint = sorted(
-                        checkpoint_list, key=lambda x: int(x.split("_")[-1].split(".")[0])
-                    )[0]
+                    last_checkpoint = sorted(checkpoint_list, key=lambda x: int(x.split("_")[-1].split(".")[0]))[0]
                     os.remove(f"{last_checkpoint}")

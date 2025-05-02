@@ -105,7 +105,7 @@ class SupervisedPrediction(Loss):
         labels[torch.isin(labels, special_token_ids)] = -100 # TODO: dont want to remove loss on <|endofchunk|> tokens
 
         labels = labels.to(input_ids.device)
-        print(f"Forward Call\n{images.shape=} {image_size=} {input_ids.shape=} {attention_mask.shape=} {labels.shape=}\n")
+        # print(f"Forward Call\n{images.shape=} {image_size=} {input_ids.shape=} {attention_mask.shape=} {labels.shape=}\n")
         # call forward
         with autocast():
             loss = model(
@@ -115,6 +115,7 @@ class SupervisedPrediction(Loss):
                 attention_mask=attention_mask,
                 labels=labels,
             )[0]
+            # print(f"{loss=}")
         return loss
 
 

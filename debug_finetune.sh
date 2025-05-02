@@ -3,7 +3,7 @@ export HF_HOME="/workspace/.cache/huggingface"
 
 datamix=$1
 exp_n=$2
-exp_name="finetune-xgenmmv1-phi3_4k_instruct-${exp_n}"
+exp_name="finetune-xgenmmv1-phi3_4k_instruct-${datamix}-${exp_n}"
 
 
 data_path="data_configs/${datamix}.yaml"
@@ -14,9 +14,10 @@ fi
 
 pretrained_ckpt="/workspace/LAVIS/base_model_weight/xgen-mm-phi3-mini-base-r-v1.5.pt"
 
-export PYTHONPATH="$PWD" 
+export PYTHONPATH="/workspace/LAVIS" 
 
-python -m torch.distributed.run --nproc_per_node=1 --nnodes=1 --master_port 9650 open_flamingo/train/instruction_finetune.py \
+python -m debugpy --listen 5678 --wait-for-client \
+     -m torch.distributed.run --nproc_per_node=1 --nnodes=1 --master_port 9650 open_flamingo/train/instruction_finetune.py \
     --lm_path microsoft/Phi-3-mini-4k-instruct \
     --tokenizer_path microsoft/Phi-3-mini-4k-instruct \
     --conv_template_name phi_3 \

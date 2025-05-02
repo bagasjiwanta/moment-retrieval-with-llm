@@ -8,7 +8,7 @@ import open_clip
 
 from .xgenmm import XGenMMPerceiver
 from .utils import hasattr_recursive, setattr_recursive
-
+from typing import List, Tuple
 from PIL import Image
 try:
     from torchvision.transforms import InterpolationMode
@@ -37,6 +37,8 @@ def create_model_and_transforms(
     cache_dir: Optional[str] = None,
     gradient_checkpointing: bool = False,
     verbose: bool = True,
+    anyres_grids: List[Tuple[int]] = [],
+    use_flash_attention_2: bool = False,
     **model_kwargs,
 ):
     """
@@ -130,15 +132,22 @@ def create_model_and_transforms(
         lang_model_path,
         local_files_only=use_local_files,
         trust_remote_code=trust_remote_code_flag,
+        attn_implementation="flash_attention_2" if use_flash_attention_2 else "sdpa",
+        torch_dtype=torch.bfloat16,
     )    
         
     check_embedding_fns(lang_model)
+
+    model_anyres_grids = []
+    base_img_size = image_processor.transforms[0].size[0]
+    for (m,n) in anyres_grids:
+        model_anyres_grids.append([base_img_size*m, base_img_size*n])
 
     # init the model
     if decoder_layers_attr_name is None:
         decoder_layers_attr_name = _infer_decoder_layers_attr_name(lang_model)
 
-    model = MODEL_FAMILY_TO_CLASS[model_family](
+    model = XGenMMPerceiver(
         vision_encoder=vision_encoder,
         lang_model=lang_model,
         vis_feature_dim=vis_hidden_dim,
@@ -146,6 +155,7 @@ def create_model_and_transforms(
         gradient_checkpointing=gradient_checkpointing,
         decoder_layers_attr_name=decoder_layers_attr_name,
         pad_token_id=text_tokenizer.pad_token_id,
+        anyres_grids=model_anyres_grids,
         **model_kwargs,
     )
     if pretrained_vision_tokenizer is not None:

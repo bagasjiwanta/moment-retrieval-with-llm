@@ -10,6 +10,21 @@ from transformers import CLIPVisionModel
 from transformers.models.siglip.modeling_siglip import SiglipVisionTransformer
 
 from open_flamingo.train.any_res_data_utils import get_anyres_image_grid_shape, unpad_image
+from dataclasses import dataclass
+
+@dataclass
+class ForwardOutput:
+    """
+    Output container for multimodal forward pass.
+
+    Attributes:
+        inputs_embeds (torch.Tensor): Embedding tensor for multimodal input.
+        attention_mask (torch.Tensor): Attention mask for the transformer input.
+        labels (torch.Tensor): Target labels for language modeling.
+    """
+    inputs_embeds: torch.Tensor
+    attention_mask: torch.Tensor
+    labels: torch.Tensor
 
 
 class VLM(nn.Module):
@@ -699,7 +714,7 @@ class VLMWithLanguageStream(VLM):
         past_vision_tokens: torch.Tensor = None,
         padding_side: str = "left",
         num_beams: int = 1,
-    ):
+    ) -> ForwardOutput:
         """
         Insert the vision tokens directly into the language stream/
         This requires us to modify the input_ids, attention_mask, and labels.
