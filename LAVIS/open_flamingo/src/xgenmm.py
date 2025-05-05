@@ -7,6 +7,36 @@ import os
 
 from .helpers import PerceiverResampler
 from .vlm import VLMWithLanguageStream
+from transformers.modeling_outputs import CausalLMOutputWithPast
+
+'''
+import torch
+import torch.nn as nn
+
+def forward(self, ...):
+    # logic to prep inputs
+    output = self.lang_model(**new_inputs, ...)
+
+    # Standard CE loss, already computed if labels given
+    ce_loss = output.loss  # Or compute yourself from output.logits and labels
+
+    # Let's say you want a BCE loss over something, e.g.:
+    # use logits[:, :, special_token_idx] as your BCE logits for each sequence position
+    bce_targets = ...  # Your shape must match logits used below
+    logits = output.logits  # shape: (batch, seq_len, vocab_size)
+
+    # Example: BCE over special token in vocab, e.g., special_token_idx
+    special_token_logits = logits[:, :, special_token_idx]  # shape: (batch, seq_len)
+    
+    bce_loss = nn.BCEWithLogitsLoss()(special_token_logits, bce_targets.float())
+
+    # Combine losses (you can weight them)
+    total_loss = ce_loss + alpha * bce_loss
+
+    output.loss = total_loss  # Return that for Trainer
+
+    return output
+'''
 
 class XGenMMPerceiver(VLMWithLanguageStream):
     def __init__(
@@ -86,7 +116,7 @@ class XGenMMPerceiver(VLMWithLanguageStream):
         past_vision_tokens: Optional[torch.Tensor] = None,
         use_cache: Optional[bool] = False,
         **kwargs,
-    ):
+    ) -> CausalLMOutputWithPast:
         """
         Args:
             vision_x: Vision input
@@ -177,7 +207,7 @@ class XGenMMPerceiver(VLMWithLanguageStream):
             padding_side="right",
             past_vision_tokens=past_vision_tokens,
         )
-        output = self.lang_model(
+        output: CausalLMOutputWithPast = self.lang_model(
             **new_inputs,
             use_cache=use_cache,
             past_key_values=past_key_values,

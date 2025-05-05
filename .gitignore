@@ -12,3 +12,5 @@ output
 *.zip
 *.pt
 *.pth
+datasets/*/videos
+datasets/*/annotations/processed/

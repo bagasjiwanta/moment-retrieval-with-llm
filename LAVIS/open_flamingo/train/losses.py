@@ -1,9 +1,26 @@
 from open_flamingo.src.vlm import VLM
 import torch
 from typing import List, Optional
+import torch.nn as nn
+import torch.functional as F
 
-SUPPORTED_LOSSES = ["next_token_prediction",
-                    "supervised_finetune"]
+SUPPORTED_LOSSES = ["next_token_prediction", "supervised_finetune"]
+
+TOKEN_ZERO = 29900
+TOKEN_ONE = 29896
+
+
+def bce_loss(logits: torch.Tensor, labels: torch.Tensor):
+    logits_1 = logits[:, :, TOKEN_ONE]  # B,T
+    logits_0 = logits[:, :, TOKEN_ZERO]  # B,T
+    logits_01 = torch.stack((logits_0, logits_1), dim=-1)  # B,T,2
+    criterion = nn.CrossEntropyLoss()
+    loss = criterion(logits_01, labels)
+    return loss
+
+
+def moment_auxilliary_loss(logits: torch.Tensor):
+    pass
 
 
 def get_loss_fn(loss_name):
@@ -12,9 +29,8 @@ def get_loss_fn(loss_name):
     elif loss_name == "supervised_finetune":
         return SupervisedPrediction()
     else:
-        raise ValueError(
-            f"Loss {loss_name} not supported. Supported losses: {SUPPORTED_LOSSES}"
-        )
+        raise ValueError(f"Loss {loss_name} not supported. Supported losses: {SUPPORTED_LOSSES}")
+
 
 class Loss:
     @property
@@ -63,10 +79,8 @@ class NextTokenPrediction(Loss):
         # set up labels; language model is expected to handle shifting
         labels = input_ids.clone()
         labels[labels == tokenizer.pad_token_id] = -100
-        special_token_ids = torch.Tensor(unwrap_model(model).special_token_ids).to(
-            labels.device
-        )
-        labels[torch.isin(labels, special_token_ids)] = -100 # TODO: dont want to remove loss on <|endofchunk|> tokens
+        special_token_ids = torch.Tensor(unwrap_model(model).special_token_ids).to(labels.device)
+        labels[torch.isin(labels, special_token_ids)] = -100  # TODO: dont want to remove loss on <|endofchunk|> tokens
 
         labels = labels.to(input_ids.device)
 
@@ -99,10 +113,8 @@ class SupervisedPrediction(Loss):
     ):
         # set up labels; language model is expected to handle shifting
         labels[labels == tokenizer.pad_token_id] = -100
-        special_token_ids = torch.Tensor(unwrap_model(model).special_token_ids).to(
-            labels.device
-        )
-        labels[torch.isin(labels, special_token_ids)] = -100 # TODO: dont want to remove loss on <|endofchunk|> tokens
+        special_token_ids = torch.Tensor(unwrap_model(model).special_token_ids).to(labels.device)
+        labels[torch.isin(labels, special_token_ids)] = -100  # TODO: dont want to remove loss on <|endofchunk|> tokens
 
         labels = labels.to(input_ids.device)
         # print(f"Forward Call\n{images.shape=} {image_size=} {input_ids.shape=} {attention_mask.shape=} {labels.shape=}\n")
@@ -123,9 +135,7 @@ def unwrap_model(model):
     """
     Unwrap a model from a DataParallel or DistributedDataParallel wrapper.
     """
-    if isinstance(
-        model, (torch.nn.DataParallel, torch.nn.parallel.DistributedDataParallel)
-    ):
+    if isinstance(model, (torch.nn.DataParallel, torch.nn.parallel.DistributedDataParallel)):
         return model.module
     else:
         return model

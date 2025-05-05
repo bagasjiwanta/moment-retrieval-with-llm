@@ -11,6 +11,7 @@ from transformers.models.siglip.modeling_siglip import SiglipVisionTransformer
 
 from open_flamingo.train.any_res_data_utils import get_anyres_image_grid_shape, unpad_image
 from dataclasses import dataclass
+from transformers import Phi3ForCausalLM
 
 @dataclass
 class ForwardOutput:
@@ -74,7 +75,7 @@ class VLM(nn.Module):
         # core components
         self.vision_encoder = vision_encoder
         self.vision_tokenizer = vision_tokenizer
-        self.lang_model = lang_model
+        self.lang_model: Phi3ForCausalLM = lang_model
 
         if base_img_size is None:
             if isinstance(self.vision_encoder, CLIPVisionModel) or isinstance(self.vision_encoder, SiglipVisionTransformer):

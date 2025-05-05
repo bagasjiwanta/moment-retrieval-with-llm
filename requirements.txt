@@ -6,3 +6,4 @@ sentencepiece
 protobuf
 transformers
 accelerate
+decord
