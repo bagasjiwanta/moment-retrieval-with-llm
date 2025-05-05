@@ -8,8 +8,8 @@ exp_name="finetune-xgenmmv1-phi3_4k_instruct-${datamix}-${exp_n}"
 
 data_path="data_configs/${datamix}.yaml"
 
-if [[ ! -e $exp_name ]]; then
-    mkdir $exp_name
+if [[ ! -e runs/$exp_name ]]; then
+    mkdir runs/$exp_name
 fi
 
 pretrained_ckpt="/workspace/LAVIS/base_model_weight/xgen-mm-phi3-mini-base-r-v1.5.pt"
@@ -41,4 +41,4 @@ python -m debugpy --listen 5678 --wait-for-client \
     --weight_decay 0.0 \
     --lr_scheduler cosine \
     --precision amp_bf16 \
-    --run_name ${exp_name} 2>&1 | tee ${exp_name}/terminal_output.log;
+    --run_name ${exp_name} 2>&1 | tee runs/${exp_name}/terminal_output.log;

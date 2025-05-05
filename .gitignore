@@ -1,7 +1,5 @@
 __pycache__
 *.pyc
-*.log
-*.log.*
 wandb
 output
 .vscode
@@ -14,3 +12,4 @@ output
 *.pth
 datasets/*/videos
 datasets/*/annotations/processed/
+test.*.ipynb

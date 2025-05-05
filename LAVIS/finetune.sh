@@ -8,8 +8,8 @@ exp_name="finetune-xgenmmv1-phi3_4k_instruct-${datamix}-${exp_n}"
 
 data_path="data_configs/${datamix}.yaml"
 
-if [[ ! -e $exp_name ]]; then
-    mkdir $exp_name
+if [[ ! -e runs/$exp_name ]]; then
+    mkdir runs/$exp_name
 fi
 
 pretrained_ckpt="/workspace/LAVIS/base_model_weight/xgen-mm-phi3-mini-base-r-v1.5.pt"
@@ -42,4 +42,4 @@ python -m torch.distributed.run --nproc_per_node=1 --nnodes=1 --master_port 9650
     --precision amp_bf16 \
     --lora \
     --use_flash_attention_2 \
-    --run_name ${exp_name} 2>&1 | tee ${exp_name}/terminal_output.log;
+    --run_name ${exp_name} 2>&1 | tee runs/${exp_name}/terminal_output.log;
