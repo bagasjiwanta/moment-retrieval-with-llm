@@ -88,7 +88,10 @@ PROMPT_STYLES = [
         "No quotes, no extra text, no line breaks.",
         "example": "Example: number of frames = {num_frames}, answer = {demo}.\n ",
     },
-    {"instruction": "Number of frames: {num_frames}.\nQuery: {activity}\nQuestion: Which frames contains the activity?", "example": None},
+    {
+        "instruction": "Number of frames: {num_frames}.\nQuery: {activity}\nQuestion: Which frames contains the activity?",
+        "example": None,
+    },
 ]
 
 
@@ -114,39 +117,53 @@ class Args:
 def json_dumps(data, indent=2, max_inline_length=120):
     json_str = json.dumps(data, indent=indent)
     # regex to find lists with no nested braces/brackets
-    pattern = re.compile(r'\[\s*([^\[\]\{\}]+?)\s*\]', re.DOTALL)
+    pattern = re.compile(r"\[\s*([^\[\]\{\}]+?)\s*\]", re.DOTALL)
 
     def replacer(match):
         content = match.group(1)
         # remove whitespace and newlines inside the list
-        inline = ' '.join(content.split())
+        inline = " ".join(content.split())
         if len(inline) <= max_inline_length:
-            return f'[ {inline} ]'
+            return f"[ {inline} ]"
         else:
             return match.group(0)
 
     return pattern.sub(replacer, json_str)
 
 
-def process_one_qvh(data: dict, vid_in_dir: str, vid_out_dir: str, num_frames: int, prompt_style: int = 0):
-    filename = os.path.join(vid_in_dir, f"{data['vid']}.mp4")
+def process_one_video(video_name: str, vid_in_dir: str, vid_out_dir: str, num_frames: int):
+    filename = os.path.join(vid_in_dir, f"{video_name}.mp4")
     with open(filename, "rb") as f_in:
         vr = VideoReader(f_in, ctx=cpu())
 
-    fps: float = vr.get_avg_fps()
     step = len(vr) / num_frames
     frame_indices = np.linspace(round(step / 2), len(vr) - round(step / 2), num_frames, dtype=int)
     video: np.ndarray = vr.get_batch(frame_indices).asnumpy()
     image_out_filenames = []
 
-    for i in range(len(video)):
-        frame = Image.fromarray(video[i])
-        out_filename = os.path.join(vid_out_dir, f"{data['vid']}_frame{(i+1):03d}.jpg")
-        frame.save(out_filename)
-        image_out_filenames.append(os.path.basename(out_filename))
+    if not os.path.isfile(os.path.join(vid_out_dir, f"{video_name}_frame{len(video):03d}.jpg")):
+        print(os.path.join(vid_out_dir, f"{video_name}_frame{len(video):03d}.jpg"))
+        for i in range(len(video)):
+            frame = Image.fromarray(video[i])
+            out_filename = os.path.join(vid_out_dir, f"{video_name}_frame{(i+1):03d}.jpg")
+            frame.save(out_filename)
+            image_out_filenames.append(os.path.basename(out_filename))
 
-    # video_times = np.round((frame_indices / fps)).astype(int)
     video_times = vr.get_frame_timestamp(frame_indices).mean(-1).astype(int)
+    return video_name, {"video_times": video_times, "image_out_filenames": image_out_filenames}
+
+
+def process_one_qvh(
+    data: dict,
+    num_frames: int,
+    prompt_style: int,
+    video_summaries: dict
+):
+
+    video_summary = video_summaries[data['qid']]
+    video_times = video_summary['video_times']
+    image_out_filenames = video_summary['image_out_filenames']
+
     answer_times = np.array(data["relevant_windows"])
     binary_mask: np.ndarray = (
         np.any((video_times[:, None] >= answer_times[:, 0]) & (video_times[:, None] <= answer_times[:, 1]), axis=1)
@@ -182,7 +199,7 @@ def process_one_qvh(data: dict, vid_in_dir: str, vid_out_dir: str, num_frames: i
     )
 
 
-def process_qvh(dirs, num_frames, prompt_style: int, num_workers: int, pretty: bool = False):
+def process_qvh(dirs, num_frames: int, prompt_style: int, num_workers: int, pretty: bool = False):
     vid_in_dir = dirs["vid_in_dir"]
     ann_input_dir = dirs["ann_input_dir"]
     vid_out_dir = dirs["vid_out_dir"]
@@ -197,20 +214,32 @@ def process_qvh(dirs, num_frames, prompt_style: int, num_workers: int, pretty: b
         ann_in = input_paths[i]
         with open(ann_in, "r") as f_in:
             raw = [json.loads(line) for line in f_in.readlines()]
-            raw = raw[:10]  # debug
+        video_names = list(set([r["vid"] for r in raw]))
+        partial_process_one_video = partial(
+            process_one_video, vid_in_dir=vid_in_dir, vid_out_dir=vid_out_dir, num_frames=num_frames
+        )
+        video_summaries = {}
+        with multiprocessing.Pool(num_workers) as pool:
+            iterator = tqdm(
+                pool.imap(partial_process_one_video, video_names),
+                total=len(video_names),
+                desc=f"Processing {len(video_names)} videos",
+            )
+            for vid, summary in iterator:
+                video_summaries[vid] = summary
+
         processed = []
         worker_func = partial(
             process_one_qvh,
-            vid_in_dir=vid_in_dir,
-            vid_out_dir=vid_out_dir,
             num_frames=num_frames,
             prompt_style=prompt_style,
+            video_summaries=video_summaries
         )
-        
+
         with multiprocessing.Pool(num_workers) as pool:
             for result in tqdm(pool.imap(worker_func, raw), total=len(raw), desc=f"Processing {ann_in}"):
                 processed.append(result)
-                
+
         ann_out = output_paths[i]
         print(len(processed))
         with open(ann_out, "w") as f_out:
@@ -244,7 +273,9 @@ def main():
         print(f" - {k}: {v}")
     print("\n")
     if args.dataset_name == "qvhighlights":
-        process_qvh(dirs, args.num_frames, prompt_style=args.prompt_style, num_workers=args.num_workers, pretty=args.pretty_json)
+        process_qvh(
+            dirs, args.num_frames, prompt_style=args.prompt_style, num_workers=args.num_workers, pretty=args.pretty_json
+        )
     else:
         process_charades(dirs, args.num_frames)
 

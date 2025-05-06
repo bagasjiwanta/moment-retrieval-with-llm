@@ -7,3 +7,7 @@ protobuf
 transformers
 accelerate
 decord
+pandas 
+scikit-learn
+
+# pip install flash-attn==2.7.3

@@ -378,6 +378,182 @@ def finetune_one_epoch(
             save_checkpoint(model, optimizer, lr_scheduler, epoch, args, step=step_num)
 
 
+def validation_one_epoch(
+    args,
+    resume_from_step,
+    model: torch.nn.Module,
+    epoch: int,
+    dataset: DataInfo,
+    compute_loss_fn: callable,
+    tokenizer,
+    optimizer,
+    lr_scheduler,
+    device_id,
+    wandb,
+):
+    """
+    Helper function for running one epoch of training.
+    Handles logging, calling forward, backward, gradient clipping, and optimizer step.
+    Args:
+        args (argparse.Namespace): arguments from command line
+        model: DDP / FSDP wrapped model
+        epoch (int): epoch number
+        datasets (list): list of DataInfos, one for each dataset, to train on
+        compute_loss_fn (callable): function that given the model and inputs, calls forward
+            and returns a loss
+        tokenizer: tokenizer for the language model
+        optimizer: optimizer to step
+        lr_scheduler: learning rate scheduler
+        device_id (int): GPU device ID for this rank
+        wandb: wandb object for logging
+    """
+    # calculate the number of steps in an epoch
+    num_batches_per_epoch = len(dataset.dataloader)
+    total_validation_steps = num_batches_per_epoch
+    total_training_steps = num_batches_per_epoch * args.num_epochs
+
+    model.eval()
+    # set up model, autocast, and dtypes
+    model.train()
+    autocast = get_autocast(args.precision)
+
+    # set up logging
+    step_time_m = AverageMeter()
+    data_time_m = AverageMeter()
+    end = time.time()
+
+    # loop through the batches in this epoch
+    iterator = tqdm(
+        enumerate(dataset.dataloader),
+        disable=args.rank != 0,
+        total=total_training_steps,
+        initial=epoch * num_batches_per_epoch,
+    )
+
+    for step_num, samples in iterator:
+        # for step_num, samples in enumerate(dataset.dataloader):
+        if step_num < resume_from_step:
+            # Jump to the resume step.
+            continue
+        data_time_m.update(time.time() - end)
+        global_step = step_num + epoch * num_batches_per_epoch
+
+        # call compute_loss_fn on each dataset; call backward before continuing
+        losses_to_log = {}
+        batch_metadata_to_log = {}
+        # images, (input_ids, attention_mask) = samples
+        # unpack the batch and move to device
+        images = samples["images"]
+        if not isinstance(images, list):
+            images = images.to(device_id, non_blocking=True)
+        input_ids = samples["input_ids"].to(device_id, non_blocking=True)
+        attention_mask = samples["attention_mask"].to(device_id, non_blocking=True)
+        labels = samples["labels"].to(device_id, non_blocking=True)
+
+        # save some metadata for logging
+        batch_metadata_to_log[f"{dataset.name}_num_tokens"] = attention_mask.sum().item()
+        batch_metadata_to_log[f"{dataset.name}_num_images"] = (
+            (input_ids == unwrap_model(model).media_token_id).sum().item()
+        )
+
+        # forward pass
+        loss = compute_loss_fn(
+            model=model,
+            tokenizer=tokenizer,
+            images=images,
+            image_size=samples["image_size"],
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            labels=labels,
+            autocast=autocast,
+        )
+        losses_to_log["train_loss"] = loss.item()
+        # iterator.write(f"loss={loss.item()}")
+        divided_loss = loss / args.gradient_accumulation_steps
+        divided_loss.backward()
+
+        if args.dryrun:
+            del loss
+            del divided_loss
+            optimizer.zero_grad(set_to_none=True)
+            continue
+
+        # FIXME: Where are the special tokens added/defined?
+        # if (not args.freeze_lm_embeddings) and (
+        #     not args.fsdp or args.fsdp_use_orig_params
+        # ):
+        #     # Mask gradients for input embeddings s.t. we only update the added tokens <image> and <|endofchunk|>
+        #     if args.fsdp:
+        #         embed_grad = model.lang_encoder.get_input_embeddings().weight.grad
+        #     else:
+        #         embed_grad = (
+        #             model.module.lang_encoder.get_input_embeddings().weight.grad
+        #         )
+        #     zero_mask = torch.zeros_like(embed_grad)
+        #     zero_mask[media_token_id] = torch.ones_like(zero_mask[media_token_id])
+        #     zero_mask[endofchunk_token_id] = torch.ones_like(
+        #         zero_mask[endofchunk_token_id]
+        #     )
+        #     if args.fsdp:
+        #         model.lang_encoder.get_input_embeddings().weight.grad = (
+        #             embed_grad * zero_mask
+        #         )
+        #     else:
+        #         model.module.lang_encoder.get_input_embeddings().weight.grad = (
+        #             embed_grad * zero_mask
+        #         )
+
+        # clip gradient norm
+        if args.fsdp:
+            model.clip_grad_norm_(1.0, norm_type=2.0)
+        else:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+
+        # step optimizer and log
+        if (((step_num + 1) % args.gradient_accumulation_steps) == 0) or (step_num == num_batches_per_epoch - 1):
+            optimizer.step()
+            lr_scheduler.step()
+            optimizer.zero_grad(set_to_none=True)
+
+            # step time and reset end outside of rank 0
+            step_time_m.update(time.time() - end)
+            end = time.time()
+
+            # rank 0 logging
+            if args.rank == 0 and args.report_to_wandb:
+                # calculate samples per second
+                throughput_metrics = compute_throughput(
+                    args,
+                    [dataset],
+                    batch_metadata_to_log,
+                    step_time_m,
+                )
+                wandb.log(
+                    {
+                        "global_step": global_step,
+                        "lr": optimizer.param_groups[0]["lr"],
+                        **losses_to_log,
+                        "data_time": data_time_m.avg,
+                        "step_time": step_time_m.avg,
+                        **throughput_metrics,
+                    },
+                    commit=True,
+                )
+                step_time_m.reset()
+                data_time_m.reset()
+
+        # dist.barrier()
+
+        # Log loss to console
+        if ((step_num + 1) % args.logging_steps == 0) and args.rank == 0:
+            print(
+                f"Step {step_num+1}/{num_batches_per_epoch} of epoch {epoch+1}/{args.num_epochs} complete. Losses: "
+                + "// ".join([f"{k}: {v:.3f}" for k, v in losses_to_log.items()])
+            )
+        if (step_num + 1) % args.checkpoint_steps == 0:
+            save_checkpoint(model, optimizer, lr_scheduler, epoch, args, step=step_num)
+
+
 def get_autocast(precision, cache_enabled=True):
     """
     Parses the precision argument and returns an autocast context manager.
