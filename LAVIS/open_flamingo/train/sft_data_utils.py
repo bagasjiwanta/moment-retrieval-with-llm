@@ -7,11 +7,13 @@ import random
 from typing import Dict, Optional, Sequence, List, Iterator
 from operator import itemgetter
 from tqdm import tqdm
+from typing import Union
 
 import torch
 import torch.distributed as dist
 from torch.utils.data import Dataset, DataLoader, DistributedSampler, Sampler
 import transformers
+from typing import TypedDict, Tuple
 
 from PIL import Image
 
@@ -28,6 +30,9 @@ LOGDIR = "."
 # Model Constants
 IGNORE_INDEX = -100
 DEFAULT_IMAGE_TOKEN = "<image>"
+
+# taken from https://huggingface.co/microsoft/Phi-3-mini-4k-instruct/blob/main/config.json
+TOKENIZER_MAX_LENGTH = 4096
 
 
 def get_image_fullpath(image_file):
@@ -151,10 +156,19 @@ def preprocess_phi_3(
         labels=targets,
     )
 
+class PreprocessPhi3New(TypedDict):
+    '''
+    input_ids (torch.Tensor) : `[1, T]`
+    labels (torch.Tensor) : `[1, T]`
+    '''
+    input_ids: torch.Tensor
+    labels: torch.Tensor
+
+
 def preprocess_phi_3_new(
     sources,
     tokenizer: transformers.PreTrainedTokenizer,
-) -> Dict:
+) -> PreprocessPhi3New:
     role_mapping = {"human": "user", "gpt": "assistant"}
     roles = ("<|user|>", "<|assistant|>")
     sep="<s>"
@@ -182,8 +196,8 @@ def preprocess_phi_3_new(
         conversations.append(chat_conv)
 
     # Tokenize conversations
-    if tokenizer.model_max_length > 2048:
-        max_len = 2048
+    if tokenizer.model_max_length > TOKENIZER_MAX_LENGTH:
+        max_len = TOKENIZER_MAX_LENGTH
     else:
         max_len = tokenizer.model_max_length
     
@@ -259,8 +273,8 @@ def preprocess_phi_3_new(
 def preprocess(
     sources: Sequence[str],
     tokenizer: transformers.PreTrainedTokenizer,
-    conv_template_name: Optional[str] = None,
-) -> Dict:
+    conv_template_name: Optional[str] = "phi_3",
+) -> PreprocessPhi3New:
     """
     Given a list of sources, each is a conversation list. This transform:
     1. Add signal '### ' at the beginning each sentence, with end signal '\n';
@@ -280,14 +294,27 @@ def preprocess(
         raise NotImplementedError
 
 
+class LazySupervisedDatasetOutput(TypedDict):
+    '''
+    Output of a LazySupervisedDataset
+    '''
+    image: torch.Tensor
+    duration: Optional[int]
+    qid: Optional[int]
+    vid: Optional[str]
+    labels: torch.Tensor
+    input_ids: torch.Tensor
+    image_size: List[int]
+
+
 class LazySupervisedDataset(Dataset):
     """Dataset for supervised fine-tuning."""
 
-    def __init__(self, data_path: str,
+    def __init__(self, data_path: Union[str, Dict],
                  tokenizer: transformers.PreTrainedTokenizer,
                  image_processor,
                  data_args,
-                #  data_args: DataArguments
+                 train=False
                  ):
         super(LazySupervisedDataset, self).__init__()
         if isinstance(data_path, str) and os.path.isfile(data_path):
@@ -299,9 +326,13 @@ class LazySupervisedDataset(Dataset):
             list_data_dict = []
             for json_file in json_lists:
                 list_data_dict.extend(json.load(open(json_file, "r")))
-        elif isinstance(data_path, Dict):
+        elif isinstance(data_path, Dict):  # example {'/workspace/detail_23k.json': 2000}
             list_data_dict = []
-            for json_file, n_sample in data_path.items():
+            split = "train" if train else "val"
+            if split not in data_path.keys():
+                raise ValueError(f'The split named "{split}" not found in data_path')
+            data_split = data_path[split]
+            for json_file, n_sample in data_split.items():
                 d_json = json.load(open(json_file, "r"))
                 if n_sample > len(d_json):
                     list_data_dict.extend(random.Random(42).choices(d_json, k=n_sample))
@@ -316,7 +347,7 @@ class LazySupervisedDataset(Dataset):
         self.conv_template_name = data_args.conv_template_name
         self.list_data_dict = list_data_dict
         self.data_args = data_args
-
+        self.train = train
         self.anyres_grids = []
         base_img_size = self.image_processor.transforms[0].size[0]
         for (m,n) in data_args.anyres_grids:
@@ -401,7 +432,7 @@ class LazySupervisedDataset(Dataset):
                 break
         return keep_sample, source
 
-    def __getitem__(self, i) -> Dict[str, torch.Tensor]:
+    def __getitem__(self, i) -> LazySupervisedDatasetOutput:
         sources = self.list_data_dict[i]
         keep_sample, sources = self._check_img_token_nums(sources)
         if not keep_sample:
@@ -421,8 +452,8 @@ class LazySupervisedDataset(Dataset):
             has_image = True
             image_file = sources[0]['image']
             if isinstance(image_file, list):
-                # FIXME: Skipping samples with more than 4 images to avoid OOM issue.
-                if len(image_file) > 4:
+                # FIXME: Skipping samples with more than 4 images to avoid OOM issue. Done
+                if len(image_file) > 30:
                     return self.__getitem__(i+1)
                 image = []
                 img_size = []
@@ -449,8 +480,14 @@ class LazySupervisedDataset(Dataset):
             self.tokenizer,
             conv_template_name=self.conv_template_name)
         if isinstance(i, int):
-            data_dict = dict(input_ids=data_dict["input_ids"][0],
-                             labels=data_dict["labels"][0])
+            data_dict = dict(
+                input_ids=data_dict["input_ids"][0],
+                labels=data_dict["labels"][0],
+            )
+            if not self.train:
+                data_dict['duration'] = sources['duration'],
+                data_dict['qid'] = sources['qid'],
+                data_dict['vid'] = sources['vid']
 
         # image exist in the data
         if has_image:
@@ -505,14 +542,32 @@ def stack_with_padding(list_of_tensors, padding_value=0, padding_side="right"):
     return torch.stack(padded_tensors)
 
 
+class DataCollatorMetadata(TypedDict):
+    qid: int
+    vid: str
+    duration: int
+
+
+class DataCollatorOutput(TypedDict):
+    input_ids: torch.Tensor
+    labels: torch.Tensor
+    attention_mask: torch.Tensor
+    metadata: List[DataCollatorMetadata]
+    images: List[torch.Tensor]
+    image_size: List[List[int]]
+
+
 @dataclass
 class DataCollatorForSupervisedDataset(object):
     """Collate examples for supervised fine-tuning."""
+    def __init__(self, train=False):
+        super().__init__()
+        self.train = train
 
     tokenizer: transformers.PreTrainedTokenizer
     image_aspect_ratio: str
 
-    def __call__(self, instances: Sequence[Dict]) -> Dict[str, torch.Tensor]:
+    def __call__(self, instances: Sequence[Dict]) -> DataCollatorOutput:
         input_ids, labels = tuple([instance[key] for instance in instances]
                                   for key in ("input_ids", "labels"))
         input_ids = torch.nn.utils.rnn.pad_sequence(
@@ -530,7 +585,14 @@ class DataCollatorForSupervisedDataset(object):
             attention_mask=input_ids.ne(self.tokenizer.pad_token_id),
         )
 
-        if 'image' in instances[0]:
+        if not self.train:
+            batch['metadata'] = [{
+                "qid": instances[i]['qid'],
+                "vid": instances[i]['vid'],
+                'duration': instances[i]['duration']
+            } for i in range(len(instances))]
+
+        if 'image' in instances[0]:  # anyres
             images = [instance['image'] for instance in instances]
             image_size = [instance['image_size'] for instance in instances]
             batch['image_size'] = image_size
@@ -551,12 +613,15 @@ class DataCollatorForSupervisedDataset(object):
                         image_size_list.append(x)
                 batch['images'] = images_list
                 batch['image_size'] = image_size_list
+
             elif images[0].shape[0] == 1 and all(x is not None and x.shape == images[0].shape for x in images):
                 # stacking images when not using anyres.
                 batch['images'] = torch.stack(images)
+
             elif images[0].ndim == 5 and self.image_aspect_ratio != 'anyres':
                 # Stacking batch of multi-image base-res image groups with padding.
                 batch['images'] = stack_with_padding(images)
+
             else:
                 batch['images'] = images
 
@@ -749,14 +814,15 @@ class DistributedSamplerWrapper(DistributedSampler):
 
 def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
                                 image_processor,
-                                data_args) -> Dict:
+                                data_args, train) -> Dict:
     """Make dataset and collator for supervised fine-tuning."""
     train_dataset = LazySupervisedDataset(tokenizer=tokenizer,
                                 data_path=data_args.data_path,
                                 image_processor=image_processor,
-                                data_args=data_args)
+                                data_args=data_args,
+                                train=train)
     data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer, 
-                                                     image_aspect_ratio=data_args.image_aspect_ratio)
+                                                     image_aspect_ratio=data_args.image_aspect_ratio, train=train)
     
     if data_args.data_sampler_group_by_length:
         # Use length grouped sampler for more balanced GPU usages.

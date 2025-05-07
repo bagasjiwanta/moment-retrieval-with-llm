@@ -4,6 +4,7 @@ import json
 import time
 import copy
 import multiprocessing as mp
+
 """
 Copied from MMAction2
 https://github.com/open-mmlab/mmaction2/blob/master/mmaction/core/evaluation/eval_detection.py
@@ -20,7 +21,7 @@ def load_jsonl(filename):
 
 
 def compute_temporal_iou_batch_paired(pred_windows, gt_windows):
-    """ compute intersection-over-union along temporal axis for each pair of windows in pred_windows and gt_windows.
+    """compute intersection-over-union along temporal axis for each pair of windows in pred_windows and gt_windows.
     Args:
         pred_windows: np.ndarray, (N, 2), [st (float), ed (float)] * N
         gt_windows: np.ndarray, (N, 2), [st (float), ed (float)] * N
@@ -33,8 +34,9 @@ def compute_temporal_iou_batch_paired(pred_windows, gt_windows):
     intersection = np.maximum(
         0, np.minimum(pred_windows[:, 1], gt_windows[:, 1]) - np.maximum(pred_windows[:, 0], gt_windows[:, 0])
     )
-    union = np.maximum(pred_windows[:, 1], gt_windows[:, 1]) \
-            - np.minimum(pred_windows[:, 0], gt_windows[:, 0])  # not the correct union though
+    union = np.maximum(pred_windows[:, 1], gt_windows[:, 1]) - np.minimum(
+        pred_windows[:, 0], gt_windows[:, 0]
+    )  # not the correct union though
     return np.divide(intersection, union, out=np.zeros_like(intersection), where=union != 0)
 
 
@@ -87,10 +89,7 @@ def interpolated_precision_recall(precision, recall):
     return ap
 
 
-def compute_average_precision_detection(ground_truth,
-                                        prediction,
-                                        tiou_thresholds=np.linspace(
-                                            0.5, 0.95, 10)):
+def compute_average_precision_detection(ground_truth, prediction, tiou_thresholds=np.linspace(0.5, 0.95, 10)):
     """Compute average precision (detection task) between ground truth and
     predictions data frames. If multiple predictions occurs for the same
     predicted segment, only the one with highest score is matches as true
@@ -120,7 +119,7 @@ def compute_average_precision_detection(ground_truth,
     num_positive = float(num_gts)
     lock_gt = np.ones((num_thresholds, num_gts)) * -1
     # Sort predictions by decreasing score order.
-    prediction.sort(key=lambda x: -x['score'])
+    prediction.sort(key=lambda x: -x["score"])
     # Initialize true positive and false positive vectors.
     tp = np.zeros((num_thresholds, num_preds))
     fp = np.zeros((num_thresholds, num_preds))
@@ -128,19 +127,23 @@ def compute_average_precision_detection(ground_truth,
     # Adaptation to query faster
     ground_truth_by_videoid = {}
     for i, item in enumerate(ground_truth):
-        item['index'] = i
-        ground_truth_by_videoid.setdefault(item['video-id'], []).append(item)
+        item["index"] = i
+        ground_truth_by_videoid.setdefault(item["video-id"], []).append(item)
 
     # Assigning true positive to truly grount truth instances.
     for idx, pred in enumerate(prediction):
-        if pred['video-id'] in ground_truth_by_videoid:
-            gts = ground_truth_by_videoid[pred['video-id']]
+        if pred["video-id"] in ground_truth_by_videoid:
+            gts = ground_truth_by_videoid[pred["video-id"]]
         else:
             fp[:, idx] = 1
             continue
 
-        _pred = np.array([[pred['t-start'], pred['t-end']], ])
-        _gt = np.array([[gt['t-start'], gt['t-end']] for gt in gts])
+        _pred = np.array(
+            [
+                [pred["t-start"], pred["t-end"]],
+            ]
+        )
+        _gt = np.array([[gt["t-start"], gt["t-end"]] for gt in gts])
         tiou_arr = compute_temporal_iou_batch_cross(_pred, _gt)[0]
 
         tiou_arr = tiou_arr.reshape(-1)
@@ -151,11 +154,11 @@ def compute_average_precision_detection(ground_truth,
                 if tiou_arr[j_idx] < tiou_threshold:
                     fp[t_idx, idx] = 1
                     break
-                if lock_gt[t_idx, gts[j_idx]['index']] >= 0:
+                if lock_gt[t_idx, gts[j_idx]["index"]] >= 0:
                     continue
                 # Assign as true positive after the filters above.
                 tp[t_idx, idx] = 1
-                lock_gt[t_idx, gts[j_idx]['index']] = idx
+                lock_gt[t_idx, gts[j_idx]["index"]] = idx
                 break
 
             if fp[t_idx, idx] == 0 and tp[t_idx, idx] == 0:
@@ -168,8 +171,7 @@ def compute_average_precision_detection(ground_truth,
     precision_cumsum = tp_cumsum / (tp_cumsum + fp_cumsum)
 
     for t_idx in range(len(tiou_thresholds)):
-        ap[t_idx] = interpolated_precision_recall(precision_cumsum[t_idx, :],
-                                                  recall_cumsum[t_idx, :])
+        ap[t_idx] = interpolated_precision_recall(precision_cumsum[t_idx, :], recall_cumsum[t_idx, :])
     return ap
 
 
@@ -214,49 +216,49 @@ def get_ap(y_true, y_predict, interpolate=True, point_11=False):
     else:  # Compute the AP using precision at every additionally recalled sample
         indices = np.where(np.diff(recall))
         return np.mean(precision[indices])
-    
 
-def compute_average_precision_detection_wrapper(
-        input_triple, tiou_thresholds=np.linspace(0.5, 0.95, 10)):
+
+def compute_average_precision_detection_wrapper(input_triple, tiou_thresholds=np.linspace(0.5, 0.95, 10)):
     qid, ground_truth, prediction = input_triple
-    scores = compute_average_precision_detection(
-        ground_truth, prediction, tiou_thresholds=tiou_thresholds)
+    scores = compute_average_precision_detection(ground_truth, prediction, tiou_thresholds=tiou_thresholds)
     return qid, scores
 
 
-def compute_mr_ap(submission, ground_truth, iou_thds=np.linspace(0.5, 0.95, 10),
-                  max_gt_windows=None, max_pred_windows=10, num_workers=8, chunksize=50):
+def compute_mr_ap(
+    submission,
+    ground_truth,
+    iou_thds=np.linspace(0.5, 0.95, 10),
+    max_gt_windows=None,
+    max_pred_windows=10,
+    num_workers=8,
+    chunksize=50,
+):
     iou_thds = [float(f"{e:.2f}") for e in iou_thds]
     pred_qid2data = defaultdict(list)
     for d in submission:
-        pred_windows = d["pred_relevant_windows"][:max_pred_windows] \
-            if max_pred_windows is not None else d["pred_relevant_windows"]
+        pred_windows = (
+            d["pred_relevant_windows"][:max_pred_windows]
+            if max_pred_windows is not None
+            else d["pred_relevant_windows"]
+        )
         qid = d["qid"]
         for w in pred_windows:
-            pred_qid2data[qid].append({
-                "video-id": d["qid"],  # in order to use the API
-                "t-start": w[0],
-                "t-end": w[1],
-                "score": w[2]
-            })
+            pred_qid2data[qid].append(
+                {"video-id": d["qid"], "t-start": w[0], "t-end": w[1], "score": w[2]}  # in order to use the API
+            )
 
     gt_qid2data = defaultdict(list)
     for d in ground_truth:
-        gt_windows = d["relevant_windows"][:max_gt_windows] \
-            if max_gt_windows is not None else d["relevant_windows"]
+        gt_windows = d["relevant_windows"][:max_gt_windows] if max_gt_windows is not None else d["relevant_windows"]
         qid = d["qid"]
         for w in gt_windows:
-            gt_qid2data[qid].append({
-                "video-id": d["qid"],
-                "t-start": w[0],
-                "t-end": w[1]
-            })
+            gt_qid2data[qid].append({"video-id": d["qid"], "t-start": w[0], "t-end": w[1]})
     qid2ap_list = {}
     # start_time = time.time()
     data_triples = [[qid, gt_qid2data[qid], pred_qid2data[qid]] for qid in pred_qid2data]
     from functools import partial
-    compute_ap_from_triple = partial(
-        compute_average_precision_detection_wrapper, tiou_thresholds=iou_thds)
+
+    compute_ap_from_triple = partial(compute_average_precision_detection_wrapper, tiou_thresholds=iou_thds)
 
     if num_workers > 1:
         with mp.Pool(num_workers) as pool:
@@ -309,7 +311,7 @@ def get_window_len(window):
 
 
 def get_data_by_range(submission, ground_truth, len_range):
-    """ keep queries with ground truth window length in the specified length range.
+    """keep queries with ground truth window length in the specified length range.
     Args:
         submission:
         ground_truth:
@@ -324,8 +326,7 @@ def get_data_by_range(submission, ground_truth, len_range):
     ground_truth_in_range = []
     gt_qids_in_range = set()
     for d in ground_truth:
-        rel_windows_in_range = [
-            w for w in d["relevant_windows"] if min_l < get_window_len(w) <= max_l]
+        rel_windows_in_range = [w for w in d["relevant_windows"] if min_l < get_window_len(w) <= max_l]
         if len(rel_windows_in_range) > 0:
             d = copy.deepcopy(d)
             d["relevant_windows"] = rel_windows_in_range
@@ -342,7 +343,12 @@ def get_data_by_range(submission, ground_truth, len_range):
 
 
 def eval_moment_retrieval(submission, ground_truth, verbose=True):
-    length_ranges = [[0, 10], [10, 30], [30, 150], [0, 150], ]  #
+    length_ranges = [
+        [0, 10],
+        [10, 30],
+        [30, 150],
+        [0, 150],
+    ]  #
     range_names = ["short", "middle", "long", "full"]
 
     ret_metrics = {}
@@ -350,8 +356,10 @@ def eval_moment_retrieval(submission, ground_truth, verbose=True):
         if verbose:
             start_time = time.time()
         _submission, _ground_truth = get_data_by_range(submission, ground_truth, l_range)
-        print(f"{name}: {l_range}, {len(_ground_truth)}/{len(ground_truth)}="
-              f"{100*len(_ground_truth)/len(ground_truth):.2f} examples.")
+        print(
+            f"{name}: {l_range}, {len(_ground_truth)}/{len(ground_truth)}="
+            f"{100*len(_ground_truth)/len(ground_truth):.2f} examples."
+        )
         iou_thd2average_precision = compute_mr_ap(_submission, _ground_truth, num_workers=8, chunksize=50)
         iou_thd2recall_at_one = compute_mr_r1(_submission, _ground_truth)
         ret_metrics[name] = {"MR-mAP": iou_thd2average_precision, "MR-R1": iou_thd2recall_at_one}
@@ -359,7 +367,8 @@ def eval_moment_retrieval(submission, ground_truth, verbose=True):
             print(f"[eval_moment_retrieval] [{name}] {time.time() - start_time:.2f} seconds")
     return ret_metrics
 
-'''
+
+"""
 def compute_hl_hit1(qid2preds, qid2gt_scores_binary):
     qid2max_scored_clip_idx = {k: np.argmax(v["pred_saliency_scores"]) for k, v in qid2preds.items()}
     hit_scores = np.zeros((len(qid2preds), 3))
@@ -400,17 +409,18 @@ def compute_hl_ap(qid2preds, qid2gt_scores_binary, num_workers=8, chunksize=50):
     # since all queries have the same #annotations.
     mean_ap = float(f"{100 * np.mean(ap_scores):.2f}")
     return mean_ap
-'''
+"""
+
 
 def compute_ap_from_tuple(input_tuple):
     idx, w_idx, y_true, y_predict = input_tuple
     if len(y_true) < len(y_predict):
         # print(f"len(y_true) < len(y_predict) {len(y_true), len(y_predict)}")
-        y_predict = y_predict[:len(y_true)]
+        y_predict = y_predict[: len(y_true)]
     elif len(y_true) > len(y_predict):
         # print(f"len(y_true) > len(y_predict) {len(y_true), len(y_predict)}")
         _y_predict = np.zeros(len(y_true))
-        _y_predict[:len(y_predict)] = y_predict
+        _y_predict[: len(y_predict)] = y_predict
         y_predict = _y_predict
 
     score = get_ap(y_true, y_predict)
@@ -418,13 +428,14 @@ def compute_ap_from_tuple(input_tuple):
 
 
 def mk_gt_scores(gt_data, clip_length=2):
-    """gt_data, dict, """
+    """gt_data, dict,"""
     num_clips = int(gt_data["duration"] / clip_length)
     saliency_scores_full_video = np.zeros((num_clips, 3))
     relevant_clip_ids = np.array(gt_data["relevant_clip_ids"])  # (#relevant_clip_ids, )
     saliency_scores_relevant_clips = np.array(gt_data["saliency_scores"])  # (#relevant_clip_ids, 3)
     saliency_scores_full_video[relevant_clip_ids] = saliency_scores_relevant_clips
     return saliency_scores_full_video  # (#clips_in_video, 3)  the scores are in range [0, 4]
+
 
 '''
 def eval_highlight(submission, ground_truth, verbose=True):
@@ -453,6 +464,7 @@ def eval_highlight(submission, ground_truth, verbose=True):
             print(f"Time cost {time.time() - start_time:.2f} seconds")
     return highlight_det_metrics
 '''
+
 
 def eval_submission(submission, ground_truth, verbose=True, match_number=True):
     """
@@ -485,9 +497,10 @@ def eval_submission(submission, ground_truth, verbose=True, match_number=True):
     pred_qids = set([e["qid"] for e in submission])
     gt_qids = set([e["qid"] for e in ground_truth])
     if match_number:
-        assert pred_qids == gt_qids, \
-            f"qids in ground_truth and submission must match. " \
+        assert pred_qids == gt_qids, (
+            f"qids in ground_truth and submission must match. "
             f"use `match_number=False` if you wish to disable this check"
+        )
     else:  # only leave the items that exists in both submission and ground_truth
         shared_qids = pred_qids.intersection(gt_qids)
         submission = [e for e in submission if e["qid"] in shared_qids]
@@ -496,8 +509,7 @@ def eval_submission(submission, ground_truth, verbose=True, match_number=True):
     eval_metrics = {}
     eval_metrics_brief = OrderedDict()
     if "pred_relevant_windows" in submission[0]:
-        moment_ret_scores = eval_moment_retrieval(
-            submission, ground_truth, verbose=verbose)
+        moment_ret_scores = eval_moment_retrieval(submission, ground_truth, verbose=verbose)
         eval_metrics.update(moment_ret_scores)
         moment_ret_scores_brief = {
             "MR-full-mAP": moment_ret_scores["full"]["MR-mAP"]["average"],
@@ -509,9 +521,9 @@ def eval_submission(submission, ground_truth, verbose=True, match_number=True):
             "MR-full-R1@0.5": moment_ret_scores["full"]["MR-R1"]["0.5"],
             "MR-full-R1@0.7": moment_ret_scores["full"]["MR-R1"]["0.7"],
         }
-        eval_metrics_brief.update(
-            sorted([(k, v) for k, v in moment_ret_scores_brief.items()], key=lambda x: x[0]))
+        eval_metrics_brief.update(sorted([(k, v) for k, v in moment_ret_scores_brief.items()], key=lambda x: x[0]))
 
+    # disabled because this is a different task (not moment retrieval)
     # if "pred_saliency_scores" in submission[0]:
     #     highlight_det_scores = eval_highlight(
     #         submission, ground_truth, verbose=verbose)
@@ -530,6 +542,7 @@ def eval_submission(submission, ground_truth, verbose=True, match_number=True):
 
 def eval_main():
     import argparse
+
     parser = argparse.ArgumentParser(description="Moments and Highlights Evaluation Script")
     parser.add_argument("--submission_path", type=str, help="path to generated prediction file")
     parser.add_argument("--gt_path", type=str, help="path to GT file")
@@ -548,13 +561,5 @@ def eval_main():
         f.write(json.dumps(results, indent=4))
 
 
-def eval_qvhighlights(
-    submission: List[Dict],
-    ground_truth: List[Dict]
-):
-    results = eval_submission(submission, ground_truth, verbose=False)
-
-
-
 # if __name__ == '__main__':
-    # eval_main()
+# eval_main()

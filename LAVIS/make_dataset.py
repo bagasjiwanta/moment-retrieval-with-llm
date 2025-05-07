@@ -195,6 +195,7 @@ def process_one_qvh(
             "conversations": conversations,
             "video_timestamps": video_times.tolist(),
             "relevant_windows": data["relevant_windows"],
+            "duration": data['duration']
         },
     )
 

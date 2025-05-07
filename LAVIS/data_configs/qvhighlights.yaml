@@ -1,0 +1,5 @@
+data_path:
+  train:
+    /workspace/annotations/raw/highlights_train_release.json: 2000
+  val:
+    /workspace/annotations/raw/highlights_val_release.json: 200
