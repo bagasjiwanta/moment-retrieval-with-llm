@@ -131,10 +131,10 @@ def json_dumps(data, indent=2, max_inline_length=120):
     return pattern.sub(replacer, json_str)
 
 
-def process_one_video(video_name: str, vid_in_dir: str, vid_out_dir: str, num_frames: int):
+def process_one_video(video_name: str, vid_in_dir: str, vid_out_dir: str, num_frames: int, serial=False):
     filename = os.path.join(vid_in_dir, f"{video_name}.mp4")
     with open(filename, "rb") as f_in:
-        vr = VideoReader(f_in, ctx=cpu())
+        vr = VideoReader(f_in, ctx=gpu(0))
 
     step = len(vr) / num_frames
     frame_indices = np.linspace(round(step / 2), len(vr) - round(step / 2), num_frames, dtype=int)
@@ -142,27 +142,25 @@ def process_one_video(video_name: str, vid_in_dir: str, vid_out_dir: str, num_fr
     image_out_filenames = []
 
     if not os.path.isfile(os.path.join(vid_out_dir, f"{video_name}_frame{len(video):03d}.jpg")):
-        print(os.path.join(vid_out_dir, f"{video_name}_frame{len(video):03d}.jpg"))
+        # print(os.path.join(vid_out_dir, f"{video_name}_frame{len(video):03d}.jpg"))
         for i in range(len(video)):
             frame = Image.fromarray(video[i])
             out_filename = os.path.join(vid_out_dir, f"{video_name}_frame{(i+1):03d}.jpg")
             frame.save(out_filename)
             image_out_filenames.append(os.path.basename(out_filename))
 
-    video_times = vr.get_frame_timestamp(frame_indices).mean(-1).astype(int)
-    return video_name, {"video_times": video_times, "image_out_filenames": image_out_filenames}
+    video_times: np.ndarray = vr.get_frame_timestamp(frame_indices).mean(-1).astype(int)
+    return (
+        video_name, 
+        {"video_times": video_times, "image_out_filenames": image_out_filenames, "video_times_serial": video_times.tolist()}
+    )
 
 
-def process_one_qvh(
-    data: dict,
-    num_frames: int,
-    prompt_style: int,
-    video_summaries: dict
-):
+def process_one_qvh(data: dict, num_frames: int, prompt_style: int, video_summaries: dict):
 
-    video_summary = video_summaries[data['qid']]
-    video_times = video_summary['video_times']
-    image_out_filenames = video_summary['image_out_filenames']
+    video_summary = video_summaries[data["vid"]]
+    video_times = video_summary["video_times"]
+    image_out_filenames = video_summary["image_out_filenames"]
 
     answer_times = np.array(data["relevant_windows"])
     binary_mask: np.ndarray = (
@@ -191,16 +189,17 @@ def process_one_qvh(
     return (
         {
             "id": data["qid"],
+            "vid": data["vid"],
             "image": image_out_filenames,
             "conversations": conversations,
             "video_timestamps": video_times.tolist(),
             "relevant_windows": data["relevant_windows"],
-            "duration": data['duration']
+            "duration": data["duration"],
         },
     )
 
 
-def process_qvh(dirs, num_frames: int, prompt_style: int, num_workers: int, pretty: bool = False):
+def process_qvh(dirs, num_frames: int, prompt_style: int, num_workers: int, pretty=False):
     vid_in_dir = dirs["vid_in_dir"]
     ann_input_dir = dirs["ann_input_dir"]
     vid_out_dir = dirs["vid_out_dir"]
@@ -211,34 +210,52 @@ def process_qvh(dirs, num_frames: int, prompt_style: int, num_workers: int, pret
     assert all([os.path.isfile(path) for path in input_paths]), "QVHighlights dataset files are not found"
     output_paths = [os.path.join(ann_out_dir, f"highlight_{split}_release.json") for split in splits]
 
+    split_data = []
+
     for i in range(len(splits)):
         ann_in = input_paths[i]
         with open(ann_in, "r") as f_in:
             raw = [json.loads(line) for line in f_in.readlines()]
-        video_names = list(set([r["vid"] for r in raw]))
-        partial_process_one_video = partial(
-            process_one_video, vid_in_dir=vid_in_dir, vid_out_dir=vid_out_dir, num_frames=num_frames
+        split_data.append(raw)
+    
+    video_names = list(
+        set([r["vid"] for r in split_data[0]]) | 
+        set([r['vid'] for r in split_data[1]]) |
+        set([r['vid'] for r in split_data[2]]) 
+    ) 
+    partial_process_one_video = partial(
+        process_one_video, vid_in_dir=vid_in_dir, vid_out_dir=vid_out_dir, num_frames=num_frames
+    )
+    video_summaries = {}
+    video_summaries_serial = {}
+    with multiprocessing.Pool(num_workers) as pool:
+        iterator = tqdm(
+            pool.imap(partial_process_one_video, video_names),
+            total=len(video_names),
+            desc=f"Processing {len(video_names)} videos",
         )
-        video_summaries = {}
-        with multiprocessing.Pool(num_workers) as pool:
-            iterator = tqdm(
-                pool.imap(partial_process_one_video, video_names),
-                total=len(video_names),
-                desc=f"Processing {len(video_names)} videos",
-            )
-            for vid, summary in iterator:
-                video_summaries[vid] = summary
+        for vid, summary in iterator:
+            video_summaries[vid] = {
+                "video_times": summary['video_times'],
+                "image_out_filenames": summary['image_out_filenames']
+            }
+            video_summaries_serial[vid] = {
+                "video_times" : summary['video_times_serial'],
+                "image_out_filenames": summary['image_out_filenames']
+            }
 
+    with open("video_summaries.json", "w") as f_out:
+        f_out.write(json_dumps(video_summaries_serial, indent=2))
+    
+    for i in range(len(splits)):
+        raw = split_data[i]
         processed = []
         worker_func = partial(
-            process_one_qvh,
-            num_frames=num_frames,
-            prompt_style=prompt_style,
-            video_summaries=video_summaries
+            process_one_qvh, num_frames=num_frames, prompt_style=prompt_style, video_summaries=video_summaries
         )
 
         with multiprocessing.Pool(num_workers) as pool:
-            for result in tqdm(pool.imap(worker_func, raw), total=len(raw), desc=f"Processing {ann_in}"):
+            for result in tqdm(pool.imap(worker_func, raw), total=len(raw), desc=f"Processing split {splits[i]}"):
                 processed.append(result)
 
         ann_out = output_paths[i]
@@ -273,9 +290,19 @@ def main():
     for k, v in dirs.items():
         print(f" - {k}: {v}")
     print("\n")
+
+    if not os.path.isdir(vid_out_dir):
+        os.makedirs(vid_out_dir)
+    if not os.path.isdir(ann_out_dir):
+        os.makedirs(ann_out_dir)
+
     if args.dataset_name == "qvhighlights":
         process_qvh(
-            dirs, args.num_frames, prompt_style=args.prompt_style, num_workers=args.num_workers, pretty=args.pretty_json
+            dirs,
+            args.num_frames,
+            prompt_style=args.prompt_style,
+            num_workers=args.num_workers,
+            pretty=args.pretty_json,
         )
     else:
         process_charades(dirs, args.num_frames)

@@ -13,3 +13,4 @@ output
 datasets/*/videos
 datasets/*/annotations/processed/
 test.*.ipynb
+video_summaries.json

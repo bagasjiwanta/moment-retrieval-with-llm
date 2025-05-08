@@ -1,7 +1,7 @@
 einops
 einops_exts
 av
-pyav
+omegaconf
 sentencepiece
 protobuf
 transformers
@@ -9,5 +9,10 @@ accelerate
 decord
 pandas 
 scikit-learn
-
-# pip install flash-attn==2.7.3
+tqdm
+wandb
+huggingface-hub[cli]
+pillow
+open-clip-torch
+# pip install flash-attn==2.7.3 --no-build-isolation
+torchvision
