@@ -17,7 +17,7 @@ class EvalDataDict(TypedDict):
     vid: str
 
 
-def preds_to_spans(data_dict: List[EvalDataDict]) -> List[List[int, int]]:
+def preds_to_spans(data_dict: List[EvalDataDict]) -> List[List[int]]:
     """
     preds: list of strings, each string is a series of '0'/'1'
     durations: list of ints, total duration (in seconds) for each video
@@ -68,53 +68,46 @@ def preds_to_spans_np(preds, durations):
     return all_spans
 
 
-def validate_one_epoch(
-    args: Args,
-    model,
-    epoch,
-    dataset: DataInfo,
-    tokenizer,
-    device_id,
-    wandb
-):
+def validate_one_epoch(args: Args, model, epoch, dataset: DataInfo, tokenizer, device_id, wandb):
     num_batches_per_epoch = len(dataset.dataloader)
     model.eval()
     iterator: Iterator[Tuple[int, DataCollatorOutput]] = tqdm(
         enumerate(dataset.dataloader),
         disable=args.rank != 0,
         total=len(dataset.dataloader),
-        initial=args.num_epochs * num_batches_per_epoch
+        initial=args.num_epochs * num_batches_per_epoch,
     )
-    
+
     preds = []
-    for (step_num, samples) in iterator:
-        images = samples['images']
+    for step_num, samples in iterator:
+        images = samples["images"]
         if not isinstance(images, list):
             images = images.to(device_id, non_blocking=True)
-        
-        input_ids = samples['input_ids'].to(device_id, non_blocking=True)
+
+        input_ids = samples["input_ids"].to(device_id, non_blocking=True)
         attention_mask = samples["attention_mask"].to(device_id, non_blocking=True)
         generated_ids = model.generate(
             vision_x=images,
             lang_x=input_ids,
-            image_size=samples['image_size'],
+            image_size=samples["image_size"],
             attention_mask=attention_mask,
             do_sample=True,
             temperature=0.1,
-            max_new_tokens=128,
+            max_new_tokens=256,
             top_p=0.9,
-            num_beams=2
+            num_beams=1,
         )
         # B, T
         generated_text = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
         generated_text = generated_text.split("<|end|>")[0]
-        metadata = samples['metadata']
+        metadata = samples["metadata"]
         for i in range(args.batch_size):
-            metadata[i]['preds'] = generated_text
+            metadata[i]["preds"] = generated_text
         preds.append(metadata)
+        break
 
     spans = preds_to_spans(preds)
-    
+    print({})
 
 
 class EvalDataDict(TypedDict):
@@ -124,7 +117,7 @@ class EvalDataDict(TypedDict):
     qid: int
     vid: str
 
-    
+
 def validate_one_epoch_with_metrics(
     args,
     model,
@@ -209,7 +202,6 @@ def validate_one_epoch_with_metrics(
             )
     model.train()
     return avg_loss, bleu_score, acc_score
-
 
 
 def validate_generate_and_accumulate(model, dataloader, tokenizer, device_id, metric_names=("bleu", "rouge")):

@@ -1,4 +1,5 @@
 """Main training script"""
+
 import json
 import argparse
 from datetime import datetime
@@ -211,7 +212,7 @@ def main():
     # Initialize datasets
     yaml_data_path = f"data_configs/{args.data_path}.yaml"
     assert os.path.isfile(yaml_data_path), f"Data config file not found at {yaml_data_path}"
-    
+
     data_config = OmegaConf.to_container(OmegaConf.load(yaml_data_path), resolve=True)
     if args.rank == 0:
         print("================== Data mixture config ===================")
@@ -221,7 +222,7 @@ def main():
     args.data_path = {args.data_path: data_config}
     train_dataset, total_num_samples = make_supervised_data_module(tokenizer, image_processor, args, split="train")
     val_dataset, val_samples = make_supervised_data_module(tokenizer, image_processor, args, split="val")
-    
+
     # Update anyres grid.
     args.anyres_grids = train_dataset.dataloader.dataset.anyres_grids
     model.anyres_grids = args.anyres_grids  # this does not seem to work idk, the grids are inserted above
@@ -261,9 +262,17 @@ def main():
     if args.rank == 0:
         print(distributed_model)
 
-    val_dataset.set_epoch(0)
-    
-    validate_one_epoch()
+    # val_dataset.set_epoch(0)
+
+    # validate_one_epoch(
+    #     args,
+    #     model,
+    #     0,
+    #     val_dataset,
+    #     tokenizer,
+    #     device_id,
+    #     wandb
+    # )
 
     # Start training!
     print(f"Start running training on rank {args.rank}.")

@@ -38,7 +38,7 @@ pretrained: /workspace/moment-retrieval-with-llm/base_model_weight/xgen-mm-phi3-
 pretrained_vision_tokenizer: None
 report_to_wandb: False
 resume_from_checkpoint: None
-run_name: finetune-xgenmmv1-phi3_4k_instruct-qvhighlights-lora-v1
+run_name: finetune-xgenmmv1-phi3_4k_instruct-qvhighlights-lora-debug-val-epoch
 save_checkpoints_to_wandb: False
 seed: 42
 tokenizer_path: microsoft/Phi-3-mini-4k-instruct
@@ -56,7 +56,7 @@ workers: 2
 Initializing distributed training with 1 GPUs.
 Using a slow image processor as `use_fast` is unset and a slow processor was saved with this model. `use_fast=True` will be the default behavior in v4.52, even if the model was saved with a slow processor. This will result in minor differences in outputs. You'll still be able to use a slow processor with `use_fast=False`.
 You are attempting to use Flash Attention 2.0 with a model not initialized on GPU. Make sure to move the model to GPU after initializing it on CPU with `model.to('cuda')`.
-Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00, 23.37it/s]
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00, 29.27it/s]
 xgenmm_v1 model initialized with 3,931,031,619 trainable parameters
 ==========Trainable Parameters
 Vision encoder: 0 trainable parameters
@@ -188,21 +188,20 @@ DistributedDataParallel(
   )
 )
 Start running training on rank 0.
-  0%|          | 0/2000 [00:00<?, ?it/s][W reducer.cpp:1346] Warning: find_unused_parameters=True was specified in DDP constructor, but did not find any unused parameters in the forward pass. This flag results in an extra traversal of the autograd graph every iteration,  which can adversely affect performance. If your model indeed never has any unused parameters in the forward pass, consider turning this flag off. Note that this warning may be a false positive if your model has flow control causing later iterations to have unused parameters. (function operator())
-  0%|          | 0/2000 [00:04<?, ?it/s]
+  0%|          | 0/2000 [00:00<?, ?it/s]  0%|          | 0/2000 [00:00<?, ?it/s]
 Traceback (most recent call last):
   File "/workspace/moment-retrieval-with-llm/LAVIS/open_flamingo/train/instruction_finetune.py", line 299, in <module>
     main()
   File "/workspace/moment-retrieval-with-llm/LAVIS/open_flamingo/train/instruction_finetune.py", line 281, in main
     finetune_one_epoch(
-  File "/workspace/moment-retrieval-with-llm/LAVIS/open_flamingo/train/train_utils.py", line 141, in finetune_one_epoch
-    divided_loss.backward()
-  File "/usr/local/lib/python3.10/dist-packages/torch/_tensor.py", line 492, in backward
-    torch.autograd.backward(
-  File "/usr/local/lib/python3.10/dist-packages/torch/autograd/__init__.py", line 251, in backward
-    Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
-torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 62.00 MiB. GPU 0 has a total capacty of 23.57 GiB of which 55.38 MiB is free. Process 1029795 has 23.51 GiB memory in use. Of the allocated memory 22.37 GiB is allocated by PyTorch, and 737.07 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF
-[2025-05-08 17:27:44,726] torch.distributed.elastic.multiprocessing.api: [ERROR] failed (exitcode: 1) local_rank: 0 (pid: 29898) of binary: /usr/bin/python
+  File "/workspace/moment-retrieval-with-llm/LAVIS/open_flamingo/train/train_utils.py", line 128, in finetune_one_epoch
+    loss = compute_loss_fn(
+  File "/workspace/moment-retrieval-with-llm/LAVIS/open_flamingo/train/losses.py", line 122, in __call__
+    with autocast():
+  File "/workspace/moment-retrieval-with-llm/LAVIS/open_flamingo/train/train_utils.py", line 232, in <lambda>
+    return lambda: torch.cuda.autocast(dtype=torch.bfloat16, cache_enabled=cache_enabled)
+AttributeError: module 'torch.cuda' has no attribute 'autocast'
+[2025-05-08 17:16:27,031] torch.distributed.elastic.multiprocessing.api: [ERROR] failed (exitcode: 1) local_rank: 0 (pid: 28129) of binary: /usr/bin/python
 Traceback (most recent call last):
   File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
     return _run_code(code, main_globals, None,
@@ -229,10 +228,10 @@ Failures:
 ------------------------------------------------------------
 Root Cause (first observed failure):
 [0]:
-  time      : 2025-05-08_17:27:44
+  time      : 2025-05-08_17:16:27
   host      : 6d094fb98fde
   rank      : 0 (local_rank: 0)
-  exitcode  : 1 (pid: 29898)
+  exitcode  : 1 (pid: 28129)
   error_file: <N/A>
   traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
 ============================================================

@@ -229,7 +229,7 @@ def get_autocast(precision, cache_enabled=True):
     if precision == "amp":
         return torch.amp.autocast(cache_enabled=cache_enabled)
     elif precision == "amp_bfloat16" or precision == "amp_bf16":
-        return lambda: torch.cuda.autocast(dtype=torch.bfloat16, cache_enabled=cache_enabled)
+        return lambda: torch.amp.autocast(dtype=torch.bfloat16, cache_enabled=cache_enabled, device_type="cuda")
     else:
         return suppress
 
@@ -443,7 +443,7 @@ def save_checkpoint(model, optimizer, lr_scheduler, epoch, args, step=None):
         torch.save(checkpoint_dict, save_name)
         if args.report_to_wandb and args.save_checkpoints_to_wandb:
             wandb.save(f"{save_name}")
-
+        
         if args.delete_previous_checkpoint:
             if epoch > 0:
                 os.remove(f"{args.run_name}/checkpoint_{epoch-1}.pt")

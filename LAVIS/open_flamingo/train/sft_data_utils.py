@@ -433,6 +433,11 @@ class LazySupervisedDataset(Dataset):
         if sources[0]["conversations"][0]["from"] != "system":
             sources[0]["conversations"] = [system_round] + sources[0]["conversations"]
 
+        if not self.split == "train":
+            duration = sources[0]["duration"]
+            qid = sources[0]["id"]
+            vid = sources[0]["vid"]
+
         if "image" in sources[0]:
             has_image = True
             image_file = sources[0]["image"]
@@ -460,6 +465,7 @@ class LazySupervisedDataset(Dataset):
         else:
             has_image = False
             sources = copy.deepcopy([e["conversations"] for e in sources])
+
         data_dict = preprocess(sources, self.tokenizer, conv_template_name=self.conv_template_name)
         if isinstance(i, int):
             data_dict = dict(
@@ -467,9 +473,9 @@ class LazySupervisedDataset(Dataset):
                 labels=data_dict["labels"][0],
             )
             if not self.split == "train":
-                data_dict["duration"] = (sources["duration"],)
-                data_dict["qid"] = (sources["qid"],)
-                data_dict["vid"] = sources["vid"]
+                data_dict["duration"] = duration
+                data_dict["qid"] = qid
+                data_dict["vid"] = vid
 
         # image exist in the data
         if has_image:

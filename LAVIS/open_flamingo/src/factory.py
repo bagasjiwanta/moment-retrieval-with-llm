@@ -125,7 +125,8 @@ def create_model_and_transforms(
     if ('phi3' in lang_model_path.lower()) or ('phi-3' in lang_model_path.lower()):
         if 'instruct' not in lang_model_path.lower():
             raise ValueError("As of now, we only support instruct models for phi3. Please use a model with 'instruct' in the path.")
-        trust_remote_code_flag = True # phi3 is not stable yet, so we trust the remote code
+        trust_remote_code_flag = False # phi3 is not stable yet, so we trust the remote code  
+        # Change to False because now loading from hf's Phi3 gave error in >=4.49
     else:
         trust_remote_code_flag = False # froce to use modeling code from local files so that the fsdp wrapper can be applied
     lang_model = AutoModelForCausalLM.from_pretrained(
