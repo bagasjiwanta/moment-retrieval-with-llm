@@ -16,3 +16,4 @@ pillow
 open-clip-torch
 # pip install flash-attn==2.7.3 --no-build-isolation
 torchvision
+peft

@@ -79,7 +79,6 @@ def validate_one_epoch(
 ):
     num_batches_per_epoch = len(dataset.dataloader)
     model.eval()
-    autocast = get_autocast(args.precision)
     iterator: Iterator[Tuple[int, DataCollatorOutput]] = tqdm(
         enumerate(dataset.dataloader),
         disable=args.rank != 0,

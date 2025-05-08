@@ -186,8 +186,7 @@ def process_one_qvh(data: dict, num_frames: int, prompt_style: int, video_summar
     human = example + human
     human = BASE_PROMPT_TEMPLATE.format(prompt=human, video=video_tokens)
     conversations = [{"from": "human", "value": human}, {"from": "gpt", "value": gpt}]
-    return (
-        {
+    return {
             "id": data["qid"],
             "vid": data["vid"],
             "image": image_out_filenames,
@@ -195,8 +194,8 @@ def process_one_qvh(data: dict, num_frames: int, prompt_style: int, video_summar
             "video_timestamps": video_times.tolist(),
             "relevant_windows": data["relevant_windows"],
             "duration": data["duration"],
-        },
-    )
+        }
+    
 
 
 def process_qvh(dirs, num_frames: int, prompt_style: int, num_workers: int, pretty=False):

@@ -1,5 +1,5 @@
 """Main training script"""
-
+import json
 import argparse
 from datetime import datetime
 import os
@@ -10,8 +10,7 @@ import functools
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.distributed.fsdp.wrap import lambda_auto_wrap_policy
-
-from open_flamingo import create_model_and_transforms, SUPPORTED_MODEL_FAMILIES
+from open_flamingo import create_model_and_transforms
 from open_flamingo.train.distributed import (
     init_distributed_device,
     world_info_from_env,
@@ -26,8 +25,8 @@ from open_flamingo.train.train_utils import (
     load_checkpoint,
     save_checkpoint,
 )
+from open_flamingo.train.eval_utils import validate_one_epoch
 from open_flamingo.train.losses import (
-    SUPPORTED_LOSSES,
     get_loss_fn,
 )
 from open_flamingo.train.args import parse_args
@@ -210,16 +209,18 @@ def main():
         optimizer.load_state_dict(optim_state_dict)
 
     # Initialize datasets
-    if args.data_path.split(".")[-1] == "yaml":
-        # Loading a mixture of datasets with sampling ratios.
-        data_config = OmegaConf.load(args.data_path)
-        if args.rank == 0:
-            print("================== Data mixture config ===================")
-            print(data_config)
-            print("==========================================================")
-        args.data_path = dict(data_config.data_path)
-    train_dataset, total_num_samples = make_supervised_data_module(tokenizer, image_processor, args, train=True)
-    val_dataset, val_samples = make_supervised_data_module(tokenizer, image_processor, args, train=False)
+    yaml_data_path = f"data_configs/{args.data_path}.yaml"
+    assert os.path.isfile(yaml_data_path), f"Data config file not found at {yaml_data_path}"
+    
+    data_config = OmegaConf.to_container(OmegaConf.load(yaml_data_path), resolve=True)
+    if args.rank == 0:
+        print("================== Data mixture config ===================")
+        print(args.data_path)
+        print(json.dumps(data_config, indent=4))
+        print("==========================================================")
+    args.data_path = {args.data_path: data_config}
+    train_dataset, total_num_samples = make_supervised_data_module(tokenizer, image_processor, args, split="train")
+    val_dataset, val_samples = make_supervised_data_module(tokenizer, image_processor, args, split="val")
     
     # Update anyres grid.
     args.anyres_grids = train_dataset.dataloader.dataset.anyres_grids
@@ -259,6 +260,10 @@ def main():
     # check wrapping
     if args.rank == 0:
         print(distributed_model)
+
+    val_dataset.set_epoch(0)
+    
+    validate_one_epoch()
 
     # Start training!
     print(f"Start running training on rank {args.rank}.")

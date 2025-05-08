@@ -1,20 +1,19 @@
 #!/bin/bash
 export HF_HOME="/workspace/.cache/huggingface"
 
+cd LAVIS
+
 datamix=$1
 exp_n=$2
 exp_name="finetune-xgenmmv1-phi3_4k_instruct-${datamix}-${exp_n}"
-
-
-data_path="data_configs/${datamix}.yaml"
 
 if [[ ! -e runs/$exp_name ]]; then
     mkdir runs/$exp_name
 fi
 
-pretrained_ckpt="/workspace/LAVIS/base_model_weight/xgen-mm-phi3-mini-base-r-v1.5.pt"
+pretrained_ckpt="/workspace/moment-retrieval-with-llm/base_model_weight/xgen-mm-phi3-mini-base-r-v1.5.pt"
 
-export PYTHONPATH="/workspace/LAVIS" 
+export PYTHONPATH="." 
 
 python -m debugpy --listen 5678 --wait-for-client \
      -m torch.distributed.run --nproc_per_node=1 --nnodes=1 --master_port 9650 open_flamingo/train/instruction_finetune.py \
@@ -26,7 +25,7 @@ python -m debugpy --listen 5678 --wait-for-client \
     --model_family 'xgenmm_v1' \
     --num_vision_tokens 128 \
     --pretrained ${pretrained_ckpt} \
-    --data_path ${data_path} \
+    --data_path ${datamix} \
     --data_sampler_group_by_length \
     --image_aspect_ratio anyres --anyres_patch_sampling \
     --anyres_grids "(1,2),(2,1),(2,2),(3,1),(1,3)" \
@@ -34,6 +33,7 @@ python -m debugpy --listen 5678 --wait-for-client \
     --gradient_accumulation_steps 8 \
     --no_save_optim_state \
     --gradient_checkpointing \
+    --use_flash_attention_2 \
     --workers 2 \
     --num_epochs 1 \
     --warmup_steps  2000 \

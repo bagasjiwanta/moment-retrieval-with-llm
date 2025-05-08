@@ -42,6 +42,8 @@ class Args:
     checkpoint_steps: int = 5000
 
     # Data args
+    base_data_dir: str = "datasets"
+    dataset_name: str = "qvhighlights"
     data_path: str = "/export/home/LLaVA/playground/data/llava_v1_5_mix665k_ocr_tagged_vqa_placeholder.json"
     batch_size: int = 8
     workers: int = 1
@@ -278,7 +280,12 @@ def parse_args() -> Args:
     return parser.parse_args()
 
 
-def parse_tuple_list(val: str) -> List[Tuple[int, int]]:
-    return [tuple(map(int, x.strip("()").split(","))) for x in val.split(",") if x]
-
+def parse_tuple_list(input_string):
+    try:
+        tuples = input_string.strip().strip('()').split('),(')
+        # Convert each item in the list to a tuple
+        tuple_list = [tuple(map(int, item.split(','))) for item in tuples]
+        return tuple_list
+    except Exception as e:
+        raise argparse.ArgumentTypeError(f"Invalid tuple list format: {input_string}. Error: {e}")
 

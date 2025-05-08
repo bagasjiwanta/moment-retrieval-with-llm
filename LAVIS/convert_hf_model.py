@@ -64,6 +64,7 @@ if __name__ == "__main__":
         tokenizer_path=cfg.lm_path,
         model_family=cfg.model_family,
         **additional_kwargs,
+        use_flash_attention_2=True,
     )
 
     try:

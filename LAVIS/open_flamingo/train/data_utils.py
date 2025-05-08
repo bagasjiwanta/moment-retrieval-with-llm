@@ -11,22 +11,22 @@ import sys
 from dataclasses import dataclass
 from multiprocessing import Value
 
-import braceexpand
-import webdataset as wds
+# import braceexpand
+# import webdataset as wds
 from torch.utils.data import DataLoader, IterableDataset, get_worker_info
 from torch.utils.data.distributed import DistributedSampler
-from webdataset.filters import _shuffle
-from webdataset.tariterators import (
-    base_plus_ext,
-    tar_file_expander,
-    url_opener,
-    valid_sample,
-)
+# from webdataset.filters import _shuffle
+# from webdataset.tariterators import (
+#     base_plus_ext,
+#     tar_file_expander,
+#     url_opener,
+#     valid_sample,
+# )
 
-try:
-    import horovod.torch as hvd
-except ImportError:
-    hvd = None
+# try:
+#     import horovod.torch as hvd
+# except ImportError:
+#     hvd = None
 
 
 class SharedEpoch:
@@ -59,7 +59,7 @@ class DataInfo:
         if self.sampler is not None and isinstance(self.sampler, DistributedSampler):
             self.sampler.set_epoch(epoch)
 
-
+'''
 def get_dataset_size(shards):
     """
     Get the number of samples in a dataset and the number of shards in a dataset
@@ -230,3 +230,4 @@ class ResampledShards2(IterableDataset):
             self.rng.seed(seed)
         for _ in range(self.nshards):
             yield dict(url=self.rng.choice(self.urls))
+'''

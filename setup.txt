@@ -4,7 +4,8 @@ apt-get install -y ffmpeg libavcodec-dev libavfilter-dev libavformat-dev libavut
 apt-get install -y cmake
 
 # https://launchpad.net/ubuntu/+source/ffmpeg
-apt-get install libavdevice-dev=7:4.4.2-0ubuntu0.22.04.1  # not included in PPA savory1
+# savory1 PPA is not free anymore so we have to install individually
+apt-get install libavdevice-dev=7:4.4.2-0ubuntu0.22.04.1  
 
 # make symbolic link
 ln -s /lib/x86_64-linux-gnu/libnvcuvid.so.565.57.01  /usr/local/cuda/libnvcuvid.so
@@ -19,4 +20,5 @@ python setup.py install --user
 
 cd /workspace/moment-retrieval-with-llm
 pip install -r requirements.txt
-pip install flash-attn==2.7.3 --no-build-isolation # after this version there's an error installing
+pip install flash-attn==2.7.3 --no-build-isolation 
+# after this version there's an error installing
