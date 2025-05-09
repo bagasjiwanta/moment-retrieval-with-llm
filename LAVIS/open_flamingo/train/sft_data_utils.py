@@ -35,116 +35,6 @@ DEFAULT_IMAGE_TOKEN = "<image>"
 TOKENIZER_MAX_LENGTH = 4096
 
 
-def get_image_fullpath(image_file):
-    image_file_fp = f"/workspace/train2017/{image_file}"
-    # for k, v in IMAGE_FOLDER_DICT_GCP.items():
-    # image_file_fp = None
-    # for k, v in IMAGE_FOLDER_DICT.items():
-    #     if k in image_file:
-    #         image_file_fp = image_file.replace(k, v)
-    #         break
-    if image_file_fp is None:
-        print(f"File not found: {image_file}")
-        exit(0)
-    return image_file_fp
-
-
-def preprocess_phi_3(
-    sources, conv_template, tokenizer: transformers.PreTrainedTokenizer, has_image: bool = False
-) -> Dict:
-    conv = conv_template.copy()
-    roles = {"human": conv.roles[0], "gpt": conv.roles[1]}
-
-    # Apply prompt templates
-    conversations = []
-    for i, source in enumerate(sources):
-        if roles[source[0]["from"]] != conv.roles[0]:
-            # Skip the first one if it is not from human
-            source = source[1:]
-
-        conv.messages = []
-        for j, sentence in enumerate(source):
-            role = roles[sentence["from"]]
-            assert role == conv.roles[j % 2], f"{i}"
-            conv.append_message(role, sentence["value"])
-        conversations.append(conv.get_prompt())
-
-    # Tokenize conversations.
-    # Truncate to 2048 to save memory.
-    if tokenizer.model_max_length > 2048:
-        max_len = 2048
-    else:
-        max_len = tokenizer.model_max_length
-
-    input_ids = tokenizer(
-        conversations,
-        return_tensors="pt",
-        padding="longest",
-        max_length=max_len,
-        truncation=True,
-    ).input_ids
-
-    targets = input_ids.clone()
-
-    assert conv.sep_style == conversation_lib.SeparatorStyle.PHI_3
-
-    # Mask targets
-    sep = conv.roles[1] + "\n"
-    for conversation, target in zip(conversations, targets):
-        total_len = int(target.ne(tokenizer.pad_token_id).sum())
-
-        rounds = conversation.split(conv.sep2 + "\n")
-        rounds_len = len(rounds)
-        cur_len = 0  # No <bos> token.
-        for i, rou in enumerate(rounds):
-            if rou == "":
-                break
-            rou += conv.sep2 + "\n"
-            if sep in rou:
-                # assistant round
-                round_ids = tokenizer(rou, max_length=max_len, truncation=True).input_ids
-                role_prefix_ids = tokenizer(sep).input_ids
-                len_prefix = len(role_prefix_ids)
-                round_ids = round_ids[len_prefix:]
-                round_len = len(round_ids)
-            elif conv.roles[0] in rou:
-                # user round
-                rou += sep
-                if has_image:
-                    round_ids = tokenizer(rou, max_length=max_len, truncation=True).input_ids
-                    if i > 0:
-                        round_ids = round_ids[2:]  # Skip the bos tokens
-                    round_len = len(round_ids)
-                    instruction_len = round_len  # All are instructions.
-                else:
-                    round_ids = tokenizer(rou).input_ids
-                    if i > 0:
-                        round_ids = round_ids[2:]  # Skip the bos tokens
-                    round_len = len(round_ids)
-                    instruction_len = round_len
-                target[cur_len : cur_len + instruction_len] = IGNORE_INDEX
-            else:
-                # system round
-                round_ids = tokenizer(rou, max_length=max_len, truncation=True).input_ids
-                round_len = len(round_ids)
-                instruction_len = round_len  # All are instructions.
-                target[cur_len : cur_len + instruction_len] = IGNORE_INDEX
-
-            cur_len += round_len
-
-        target[cur_len:] = IGNORE_INDEX
-
-        if cur_len < max_len:  # The input_ids are truncated to this max length.
-            if cur_len != total_len:
-                target[:] = IGNORE_INDEX
-                print(f"WARNING: tokenization mismatch: {cur_len} vs. {total_len}." f" (ignored)")
-
-    return dict(
-        input_ids=input_ids,
-        labels=targets,
-    )
-
-
 class PreprocessPhi3New(TypedDict):
     """
     input_ids (torch.Tensor) : `[1, T]`
@@ -270,10 +160,7 @@ def preprocess(
     else:
         conv_template = conversation_lib.default_conversation
 
-    if conv_template.version.startswith("phi_3"):
-        return preprocess_phi_3_new(sources, tokenizer)
-    else:
-        raise NotImplementedError
+    return preprocess_phi_3_new(sources, tokenizer)
 
 
 class LazySupervisedDatasetOutput(TypedDict):
@@ -849,6 +736,7 @@ def make_supervised_data_module(
         sampler=sampler,
         shuffle=sampler is None,
         collate_fn=data_collator,
+        persistent_workers=True,
     )
     return DataInfo(
         name="instruction-finetune-mix",

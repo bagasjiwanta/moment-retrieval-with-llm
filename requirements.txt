@@ -17,3 +17,5 @@ open-clip-torch
 # pip install flash-attn==2.7.3 --no-build-isolation
 torchvision
 peft
+triton==2.3.1
+deepspeed

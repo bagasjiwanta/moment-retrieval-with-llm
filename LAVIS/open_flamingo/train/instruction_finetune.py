@@ -37,6 +37,7 @@ from transformers import (
     get_linear_schedule_with_warmup,
 )
 from peft import LoraConfig, get_peft_model
+from deepspeed.ops.adam import FusedAdam
 
 
 def find_all_linear_names(model):
@@ -184,17 +185,28 @@ def main():
         print("Finished FSDP wrapping...")
     else:
         model = model.to(device_id).to(torch.bfloat16)
-        distributed_model = DDP(model, device_ids=[device_id], find_unused_parameters=True)
+        distributed_model = DDP(model, device_ids=[device_id], find_unused_parameters=args.lora)
 
     # Initialize optimizer
     params_with_wd, params_without_wd = model.group_params_by_weight_decay()
-    optimizer = torch.optim.AdamW(
-        [
-            {"params": params_with_wd, "weight_decay": args.weight_decay},
-            {"params": params_without_wd, "weight_decay": 0.0},
-        ],
-        lr=args.learning_rate,
-    )
+    if False:
+        optimizer = torch.optim.AdamW(
+            [
+                {"params": params_with_wd, "weight_decay": args.weight_decay},
+                {"params": params_without_wd, "weight_decay": 0.0},
+            ],
+            lr=args.learning_rate,
+            fused=True,
+        )
+    else:
+        optimizer = FusedAdam(
+            [
+                {"params": params_with_wd, "weight_decay": args.weight_decay},
+                {"params": params_without_wd, "weight_decay": 0.0},
+            ],
+            lr=args.learning_rate,
+            set_grad_none=True
+        )
 
     # load optimizer checkpoint
     if args.resume_from_checkpoint is not None:

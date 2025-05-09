@@ -181,8 +181,10 @@ def finetune_one_epoch(
         if (((step_num + 1) % args.gradient_accumulation_steps) == 0) or (step_num == num_batches_per_epoch - 1):
             optimizer.step()
             lr_scheduler.step()
-            optimizer.zero_grad(set_to_none=True)
-
+            if not args.deepspeed:
+                optimizer.zero_grad(set_to_none=True)
+            else:
+                optimizer.zero_grad()
             # step time and reset end outside of rank 0
             step_time_m.update(time.time() - end)
             end = time.time()

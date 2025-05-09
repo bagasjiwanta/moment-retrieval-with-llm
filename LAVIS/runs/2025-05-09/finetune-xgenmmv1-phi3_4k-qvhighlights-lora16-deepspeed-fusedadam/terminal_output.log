@@ -1,0 +1,525 @@
+[2025-05-09 10:16:09,264] [INFO] [real_accelerator.py:239:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+================== Parsed Arguments ===================
+anyres_grids: [(1, 2), (2, 1), (2, 2), (3, 1), (1, 3)]
+anyres_patch_sampling: True
+batch_size: 6
+checkpoint_steps: 500
+conv_template_name: phi_3
+cpu_offload_gradients: False
+cross_attn_every_n_layers: 1
+data_path: qvhighlights
+data_sampler_group_by_length: True
+deepspeed: True
+delete_previous_checkpoint: False
+dist_backend: nccl
+dist_url: env://
+dryrun: False
+fsdp: False
+fsdp_sharding_strategy: full
+gradient_accumulation_steps: 4
+gradient_checkpointing: True
+horovod: False
+image_aspect_ratio: anyres
+is_multimodal: True
+learning_rate: 2e-05
+lm_path: microsoft/Phi-3-mini-4k-instruct
+local_rank: 0
+logging_steps: 10
+lora: True
+loss: supervised_finetune
+lr_scheduler: cosine
+mm_use_im_start_end: False
+model_family: xgenmm_v1
+no_save_optim_state: True
+no_set_device_rank: True
+num_epochs: 2
+num_vision_tokens: 128
+offline: False
+precision: amp_bf16
+pretrained: /workspace/moment-retrieval-with-llm/base_model_weight/xgen-mm-phi3-mini-base-r-v1.5.pt
+pretrained_vision_tokenizer: None
+report_to_wandb: False
+resume_from_checkpoint: None
+run_name: finetune-xgenmmv1-phi3_4k-qvhighlights-lora16-deepspeed-fusedadam
+save_checkpoints_to_wandb: False
+seed: 42
+tokenizer_path: microsoft/Phi-3-mini-4k-instruct
+unfreeze_vision_encoder: False
+use_flash_attention_2: True
+vision_encoder_path: google/siglip-so400m-patch14-384
+vision_encoder_precision: fp32
+vision_encoder_pretrained: google
+wandb_entity: None
+wandb_project: None
+warmup_steps: 50
+weight_decay: 0.0
+workers: 8
+=======================================================
+Initializing distributed training with 1 GPUs.
+Using a slow image processor as `use_fast` is unset and a slow processor was saved with this model. `use_fast=True` will be the default behavior in v4.52, even if the model was saved with a slow processor. This will result in minor differences in outputs. You'll still be able to use a slow processor with `use_fast=False`.
+You are attempting to use Flash Attention 2.0 with a model not initialized on GPU. Make sure to move the model to GPU after initializing it on CPU with `model.to('cuda')`.
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:00<00:00,  7.08it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:02<00:00,  1.35s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:02<00:00,  1.17s/it]
+xgenmm_v1 model initialized with 3,931,031,619 trainable parameters
+==========Trainable Parameters
+Vision encoder: 0 trainable parameters
+Vision tokenizer: 109,901,568 trainable parameters
+Language model: 3,821,130,051 trainable parameters
+==========Total Parameters
+Vision encoder: 428,225,600 parameters
+Vision tokenizer: 109,901,568 parameters
+Language model: 3,821,130,051 parameters
+==========
+Loading checkpoint from /workspace/moment-retrieval-with-llm/base_model_weight/xgen-mm-phi3-mini-base-r-v1.5.pt
+Missing keys: []
+Unexpected keys: []
+Finished loading checkpoint...
+Wrapping model in LoRA
+================== Trainable Parameters ===================
+vision_tokenizer.projection
+vision_tokenizer.layers.0.0.to_q
+vision_tokenizer.layers.0.0.to_kv
+vision_tokenizer.layers.0.0.to_out
+vision_tokenizer.layers.0.1.1
+vision_tokenizer.layers.0.1.3
+vision_tokenizer.layers.1.0.to_q
+vision_tokenizer.layers.1.0.to_kv
+vision_tokenizer.layers.1.0.to_out
+vision_tokenizer.layers.1.1.1
+vision_tokenizer.layers.1.1.3
+vision_tokenizer.layers.2.0.to_q
+vision_tokenizer.layers.2.0.to_kv
+vision_tokenizer.layers.2.0.to_out
+vision_tokenizer.layers.2.1.1
+vision_tokenizer.layers.2.1.3
+vision_tokenizer.layers.3.0.to_q
+vision_tokenizer.layers.3.0.to_kv
+vision_tokenizer.layers.3.0.to_out
+vision_tokenizer.layers.3.1.1
+vision_tokenizer.layers.3.1.3
+vision_tokenizer.layers.4.0.to_q
+vision_tokenizer.layers.4.0.to_kv
+vision_tokenizer.layers.4.0.to_out
+vision_tokenizer.layers.4.1.1
+vision_tokenizer.layers.4.1.3
+vision_tokenizer.layers.5.0.to_q
+vision_tokenizer.layers.5.0.to_kv
+vision_tokenizer.layers.5.0.to_out
+vision_tokenizer.layers.5.1.1
+vision_tokenizer.layers.5.1.3
+lang_model.model.layers.0.self_attn.o_proj
+lang_model.model.layers.0.self_attn.qkv_proj
+lang_model.model.layers.0.mlp.gate_up_proj
+lang_model.model.layers.0.mlp.down_proj
+lang_model.model.layers.1.self_attn.o_proj
+lang_model.model.layers.1.self_attn.qkv_proj
+lang_model.model.layers.1.mlp.gate_up_proj
+lang_model.model.layers.1.mlp.down_proj
+lang_model.model.layers.2.self_attn.o_proj
+lang_model.model.layers.2.self_attn.qkv_proj
+lang_model.model.layers.2.mlp.gate_up_proj
+lang_model.model.layers.2.mlp.down_proj
+lang_model.model.layers.3.self_attn.o_proj
+lang_model.model.layers.3.self_attn.qkv_proj
+lang_model.model.layers.3.mlp.gate_up_proj
+lang_model.model.layers.3.mlp.down_proj
+lang_model.model.layers.4.self_attn.o_proj
+lang_model.model.layers.4.self_attn.qkv_proj
+lang_model.model.layers.4.mlp.gate_up_proj
+lang_model.model.layers.4.mlp.down_proj
+lang_model.model.layers.5.self_attn.o_proj
+lang_model.model.layers.5.self_attn.qkv_proj
+lang_model.model.layers.5.mlp.gate_up_proj
+lang_model.model.layers.5.mlp.down_proj
+lang_model.model.layers.6.self_attn.o_proj
+lang_model.model.layers.6.self_attn.qkv_proj
+lang_model.model.layers.6.mlp.gate_up_proj
+lang_model.model.layers.6.mlp.down_proj
+lang_model.model.layers.7.self_attn.o_proj
+lang_model.model.layers.7.self_attn.qkv_proj
+lang_model.model.layers.7.mlp.gate_up_proj
+lang_model.model.layers.7.mlp.down_proj
+lang_model.model.layers.8.self_attn.o_proj
+lang_model.model.layers.8.self_attn.qkv_proj
+lang_model.model.layers.8.mlp.gate_up_proj
+lang_model.model.layers.8.mlp.down_proj
+lang_model.model.layers.9.self_attn.o_proj
+lang_model.model.layers.9.self_attn.qkv_proj
+lang_model.model.layers.9.mlp.gate_up_proj
+lang_model.model.layers.9.mlp.down_proj
+lang_model.model.layers.10.self_attn.o_proj
+lang_model.model.layers.10.self_attn.qkv_proj
+lang_model.model.layers.10.mlp.gate_up_proj
+lang_model.model.layers.10.mlp.down_proj
+lang_model.model.layers.11.self_attn.o_proj
+lang_model.model.layers.11.self_attn.qkv_proj
+lang_model.model.layers.11.mlp.gate_up_proj
+lang_model.model.layers.11.mlp.down_proj
+lang_model.model.layers.12.self_attn.o_proj
+lang_model.model.layers.12.self_attn.qkv_proj
+lang_model.model.layers.12.mlp.gate_up_proj
+lang_model.model.layers.12.mlp.down_proj
+lang_model.model.layers.13.self_attn.o_proj
+lang_model.model.layers.13.self_attn.qkv_proj
+lang_model.model.layers.13.mlp.gate_up_proj
+lang_model.model.layers.13.mlp.down_proj
+lang_model.model.layers.14.self_attn.o_proj
+lang_model.model.layers.14.self_attn.qkv_proj
+lang_model.model.layers.14.mlp.gate_up_proj
+lang_model.model.layers.14.mlp.down_proj
+lang_model.model.layers.15.self_attn.o_proj
+lang_model.model.layers.15.self_attn.qkv_proj
+lang_model.model.layers.15.mlp.gate_up_proj
+lang_model.model.layers.15.mlp.down_proj
+lang_model.model.layers.16.self_attn.o_proj
+lang_model.model.layers.16.self_attn.qkv_proj
+lang_model.model.layers.16.mlp.gate_up_proj
+lang_model.model.layers.16.mlp.down_proj
+lang_model.model.layers.17.self_attn.o_proj
+lang_model.model.layers.17.self_attn.qkv_proj
+lang_model.model.layers.17.mlp.gate_up_proj
+lang_model.model.layers.17.mlp.down_proj
+lang_model.model.layers.18.self_attn.o_proj
+lang_model.model.layers.18.self_attn.qkv_proj
+lang_model.model.layers.18.mlp.gate_up_proj
+lang_model.model.layers.18.mlp.down_proj
+lang_model.model.layers.19.self_attn.o_proj
+lang_model.model.layers.19.self_attn.qkv_proj
+lang_model.model.layers.19.mlp.gate_up_proj
+lang_model.model.layers.19.mlp.down_proj
+lang_model.model.layers.20.self_attn.o_proj
+lang_model.model.layers.20.self_attn.qkv_proj
+lang_model.model.layers.20.mlp.gate_up_proj
+lang_model.model.layers.20.mlp.down_proj
+lang_model.model.layers.21.self_attn.o_proj
+lang_model.model.layers.21.self_attn.qkv_proj
+lang_model.model.layers.21.mlp.gate_up_proj
+lang_model.model.layers.21.mlp.down_proj
+lang_model.model.layers.22.self_attn.o_proj
+lang_model.model.layers.22.self_attn.qkv_proj
+lang_model.model.layers.22.mlp.gate_up_proj
+lang_model.model.layers.22.mlp.down_proj
+lang_model.model.layers.23.self_attn.o_proj
+lang_model.model.layers.23.self_attn.qkv_proj
+lang_model.model.layers.23.mlp.gate_up_proj
+lang_model.model.layers.23.mlp.down_proj
+lang_model.model.layers.24.self_attn.o_proj
+lang_model.model.layers.24.self_attn.qkv_proj
+lang_model.model.layers.24.mlp.gate_up_proj
+lang_model.model.layers.24.mlp.down_proj
+lang_model.model.layers.25.self_attn.o_proj
+lang_model.model.layers.25.self_attn.qkv_proj
+lang_model.model.layers.25.mlp.gate_up_proj
+lang_model.model.layers.25.mlp.down_proj
+lang_model.model.layers.26.self_attn.o_proj
+lang_model.model.layers.26.self_attn.qkv_proj
+lang_model.model.layers.26.mlp.gate_up_proj
+lang_model.model.layers.26.mlp.down_proj
+lang_model.model.layers.27.self_attn.o_proj
+lang_model.model.layers.27.self_attn.qkv_proj
+lang_model.model.layers.27.mlp.gate_up_proj
+lang_model.model.layers.27.mlp.down_proj
+lang_model.model.layers.28.self_attn.o_proj
+lang_model.model.layers.28.self_attn.qkv_proj
+lang_model.model.layers.28.mlp.gate_up_proj
+lang_model.model.layers.28.mlp.down_proj
+lang_model.model.layers.29.self_attn.o_proj
+lang_model.model.layers.29.self_attn.qkv_proj
+lang_model.model.layers.29.mlp.gate_up_proj
+lang_model.model.layers.29.mlp.down_proj
+lang_model.model.layers.30.self_attn.o_proj
+lang_model.model.layers.30.self_attn.qkv_proj
+lang_model.model.layers.30.mlp.gate_up_proj
+lang_model.model.layers.30.mlp.down_proj
+lang_model.model.layers.31.self_attn.o_proj
+lang_model.model.layers.31.self_attn.qkv_proj
+lang_model.model.layers.31.mlp.gate_up_proj
+lang_model.model.layers.31.mlp.down_proj
+lang_model.lm_head.additional_fc
+===========================================================
+trainable params: 27,310,128 || all params: 4,386,567,347 || trainable%: 0.6226
+Using /root/.cache/torch_extensions/py310_cu118 as PyTorch extensions root...
+Detected CUDA files, patching ldflags
+Emitting ninja build file /root/.cache/torch_extensions/py310_cu118/fused_adam/build.ninja...
+Building extension module fused_adam...
+Allowing ninja to set a default number of workers... (overridable by setting the environment variable MAX_JOBS=N)
+ninja: no work to do.
+Loading extension module fused_adam...
+Time to load fused_adam op: 0.0159604549407959 seconds
+================== Data mixture config ===================
+qvhighlights
+{
+    "train": {
+        "annotations": {
+            "../datasets/qvhighlights/annotations/processed/highlight_train_release.json": 1000
+        },
+        "videos": "../datasets/qvhighlights/videos/processed"
+    },
+    "val": {
+        "annotations": {
+            "../datasets/qvhighlights/annotations/processed/highlight_val_release.json": 200
+        },
+        "videos": "../datasets/qvhighlights/videos/processed"
+    }
+}
+==========================================================
+Total training steps: 82
+DistributedDataParallel(
+  (module): PeftModel(
+    (base_model): LoraModel(
+      (model): XGenMMPerceiver(
+        (vision_encoder): SiglipVisionTransformer(
+          (embeddings): SiglipVisionEmbeddings(
+            (patch_embedding): Conv2d(3, 1152, kernel_size=(14, 14), stride=(14, 14), padding=valid)
+            (position_embedding): Embedding(729, 1152)
+          )
+          (encoder): SiglipEncoder(
+            (layers): ModuleList(
+              (0-26): 27 x SiglipEncoderLayer(
+                (layer_norm1): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+                (self_attn): SiglipAttention(
+                  (k_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                  (v_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                  (q_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                  (out_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                )
+                (layer_norm2): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+                (mlp): SiglipMLP(
+                  (activation_fn): PytorchGELUTanh()
+                  (fc1): Linear(in_features=1152, out_features=4304, bias=True)
+                  (fc2): Linear(in_features=4304, out_features=1152, bias=True)
+                )
+              )
+            )
+          )
+          (post_layernorm): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+          (head): SiglipMultiheadAttentionPoolingHead(
+            (attention): MultiheadAttention(
+              (out_proj): NonDynamicallyQuantizableLinear(in_features=1152, out_features=1152, bias=True)
+            )
+            (layernorm): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+            (mlp): SiglipMLP(
+              (activation_fn): PytorchGELUTanh()
+              (fc1): Linear(in_features=1152, out_features=4304, bias=True)
+              (fc2): Linear(in_features=4304, out_features=1152, bias=True)
+            )
+          )
+        )
+        (vision_tokenizer): CheckpointWrapper(
+          (_checkpoint_wrapped_module): PerceiverResampler(
+            (projection): lora.Linear(
+              (base_layer): Linear(in_features=1152, out_features=3072, bias=True)
+              (lora_dropout): ModuleDict(
+                (default): Dropout(p=0.05, inplace=False)
+              )
+              (lora_A): ModuleDict(
+                (default): Linear(in_features=1152, out_features=16, bias=False)
+              )
+              (lora_B): ModuleDict(
+                (default): Linear(in_features=16, out_features=3072, bias=False)
+              )
+              (lora_embedding_A): ParameterDict()
+              (lora_embedding_B): ParameterDict()
+              (lora_magnitude_vector): ModuleDict()
+            )
+            (layers): ModuleList(
+              (0-5): 6 x ModuleList(
+                (0): PerceiverAttention(
+                  (norm_media): LayerNorm((1152,), eps=1e-05, elementwise_affine=True)
+                  (norm_latents): LayerNorm((1152,), eps=1e-05, elementwise_affine=True)
+                  (to_q): lora.Linear(
+                    (base_layer): Linear(in_features=1152, out_features=1536, bias=False)
+                    (lora_dropout): ModuleDict(
+                      (default): Dropout(p=0.05, inplace=False)
+                    )
+                    (lora_A): ModuleDict(
+                      (default): Linear(in_features=1152, out_features=16, bias=False)
+                    )
+                    (lora_B): ModuleDict(
+                      (default): Linear(in_features=16, out_features=1536, bias=False)
+                    )
+                    (lora_embedding_A): ParameterDict()
+                    (lora_embedding_B): ParameterDict()
+                    (lora_magnitude_vector): ModuleDict()
+                  )
+                  (to_kv): lora.Linear(
+                    (base_layer): Linear(in_features=1152, out_features=3072, bias=False)
+                    (lora_dropout): ModuleDict(
+                      (default): Dropout(p=0.05, inplace=False)
+                    )
+                    (lora_A): ModuleDict(
+                      (default): Linear(in_features=1152, out_features=16, bias=False)
+                    )
+                    (lora_B): ModuleDict(
+                      (default): Linear(in_features=16, out_features=3072, bias=False)
+                    )
+                    (lora_embedding_A): ParameterDict()
+                    (lora_embedding_B): ParameterDict()
+                    (lora_magnitude_vector): ModuleDict()
+                  )
+                  (to_out): lora.Linear(
+                    (base_layer): Linear(in_features=1536, out_features=1152, bias=False)
+                    (lora_dropout): ModuleDict(
+                      (default): Dropout(p=0.05, inplace=False)
+                    )
+                    (lora_A): ModuleDict(
+                      (default): Linear(in_features=1536, out_features=16, bias=False)
+                    )
+                    (lora_B): ModuleDict(
+                      (default): Linear(in_features=16, out_features=1152, bias=False)
+                    )
+                    (lora_embedding_A): ParameterDict()
+                    (lora_embedding_B): ParameterDict()
+                    (lora_magnitude_vector): ModuleDict()
+                  )
+                )
+                (1): Sequential(
+                  (0): LayerNorm((1152,), eps=1e-05, elementwise_affine=True)
+                  (1): lora.Linear(
+                    (base_layer): Linear(in_features=1152, out_features=4608, bias=False)
+                    (lora_dropout): ModuleDict(
+                      (default): Dropout(p=0.05, inplace=False)
+                    )
+                    (lora_A): ModuleDict(
+                      (default): Linear(in_features=1152, out_features=16, bias=False)
+                    )
+                    (lora_B): ModuleDict(
+                      (default): Linear(in_features=16, out_features=4608, bias=False)
+                    )
+                    (lora_embedding_A): ParameterDict()
+                    (lora_embedding_B): ParameterDict()
+                    (lora_magnitude_vector): ModuleDict()
+                  )
+                  (2): GELU(approximate='none')
+                  (3): lora.Linear(
+                    (base_layer): Linear(in_features=4608, out_features=1152, bias=False)
+                    (lora_dropout): ModuleDict(
+                      (default): Dropout(p=0.05, inplace=False)
+                    )
+                    (lora_A): ModuleDict(
+                      (default): Linear(in_features=4608, out_features=16, bias=False)
+                    )
+                    (lora_B): ModuleDict(
+                      (default): Linear(in_features=16, out_features=1152, bias=False)
+                    )
+                    (lora_embedding_A): ParameterDict()
+                    (lora_embedding_B): ParameterDict()
+                    (lora_magnitude_vector): ModuleDict()
+                  )
+                )
+              )
+            )
+            (norm): LayerNorm((1152,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+        (lang_model): Phi3ForCausalLM(
+          (model): Phi3Model(
+            (embed_tokens): DecoupledEmbedding(
+              num_original_embeddings=32012, num_additional_embeddings=3, embedding_dim=3072, partially_freeze=True
+              (additional_embedding): Embedding(3, 3072)
+            )
+            (layers): ModuleList(
+              (0-31): 32 x CheckpointWrapper(
+                (_checkpoint_wrapped_module): Phi3DecoderLayer(
+                  (self_attn): Phi3Attention(
+                    (o_proj): lora.Linear(
+                      (base_layer): Linear(in_features=3072, out_features=3072, bias=False)
+                      (lora_dropout): ModuleDict(
+                        (default): Dropout(p=0.05, inplace=False)
+                      )
+                      (lora_A): ModuleDict(
+                        (default): Linear(in_features=3072, out_features=16, bias=False)
+                      )
+                      (lora_B): ModuleDict(
+                        (default): Linear(in_features=16, out_features=3072, bias=False)
+                      )
+                      (lora_embedding_A): ParameterDict()
+                      (lora_embedding_B): ParameterDict()
+                      (lora_magnitude_vector): ModuleDict()
+                    )
+                    (qkv_proj): lora.Linear(
+                      (base_layer): Linear(in_features=3072, out_features=9216, bias=False)
+                      (lora_dropout): ModuleDict(
+                        (default): Dropout(p=0.05, inplace=False)
+                      )
+                      (lora_A): ModuleDict(
+                        (default): Linear(in_features=3072, out_features=16, bias=False)
+                      )
+                      (lora_B): ModuleDict(
+                        (default): Linear(in_features=16, out_features=9216, bias=False)
+                      )
+                      (lora_embedding_A): ParameterDict()
+                      (lora_embedding_B): ParameterDict()
+                      (lora_magnitude_vector): ModuleDict()
+                    )
+                  )
+                  (mlp): Phi3MLP(
+                    (gate_up_proj): lora.Linear(
+                      (base_layer): Linear(in_features=3072, out_features=16384, bias=False)
+                      (lora_dropout): ModuleDict(
+                        (default): Dropout(p=0.05, inplace=False)
+                      )
+                      (lora_A): ModuleDict(
+                        (default): Linear(in_features=3072, out_features=16, bias=False)
+                      )
+                      (lora_B): ModuleDict(
+                        (default): Linear(in_features=16, out_features=16384, bias=False)
+                      )
+                      (lora_embedding_A): ParameterDict()
+                      (lora_embedding_B): ParameterDict()
+                      (lora_magnitude_vector): ModuleDict()
+                    )
+                    (down_proj): lora.Linear(
+                      (base_layer): Linear(in_features=8192, out_features=3072, bias=False)
+                      (lora_dropout): ModuleDict(
+                        (default): Dropout(p=0.05, inplace=False)
+                      )
+                      (lora_A): ModuleDict(
+                        (default): Linear(in_features=8192, out_features=16, bias=False)
+                      )
+                      (lora_B): ModuleDict(
+                        (default): Linear(in_features=16, out_features=3072, bias=False)
+                      )
+                      (lora_embedding_A): ParameterDict()
+                      (lora_embedding_B): ParameterDict()
+                      (lora_magnitude_vector): ModuleDict()
+                    )
+                    (activation_fn): SiLU()
+                  )
+                  (input_layernorm): Phi3RMSNorm((3072,), eps=1e-05)
+                  (post_attention_layernorm): Phi3RMSNorm((3072,), eps=1e-05)
+                  (resid_attn_dropout): Dropout(p=0.0, inplace=False)
+                  (resid_mlp_dropout): Dropout(p=0.0, inplace=False)
+                )
+              )
+            )
+            (norm): Phi3RMSNorm((3072,), eps=1e-05)
+            (rotary_emb): Phi3RotaryEmbedding()
+          )
+          (lm_head): DecoupledLinear(
+            in_features=3072, out_features=32012, additional_out_features=3, bias=True, partially_freeze=True
+            (additional_fc): lora.Linear(
+              (base_layer): Linear(in_features=3072, out_features=3, bias=True)
+              (lora_dropout): ModuleDict(
+                (default): Dropout(p=0.05, inplace=False)
+              )
+              (lora_A): ModuleDict(
+                (default): Linear(in_features=3072, out_features=16, bias=False)
+              )
+              (lora_B): ModuleDict(
+                (default): Linear(in_features=16, out_features=3, bias=False)
+              )
+              (lora_embedding_A): ParameterDict()
+              (lora_embedding_B): ParameterDict()
+              (lora_magnitude_vector): ModuleDict()
+            )
+          )
+        )
+      )
+    )
+  )
+)
+Start running training on rank 0.
+  0%|          | 0/334 [00:00<?, ?it/s]  0%|          | 1/334 [00:34<3:08:56, 34.04s/it]  1%|          | 2/334 [00:52<2:17:30, 24.85s/it]  1%|          | 3/334 [01:08<1:56:00, 21.03s/it]  1%|          | 4/334 [01:25<1:45:49, 19.24s/it]  1%|▏         | 5/334 [01:42<1:40:19, 18.30s/it]  2%|▏         | 6/334 [01:59<1:38:03, 17.94s/it]  2%|▏         | 7/334 [02:15<1:35:28, 17.52s/it]  2%|▏         | 8/334 [02:32<1:33:34, 17.22s/it]  3%|▎         | 9/334 [02:49<1:32:19, 17.05s/it]Step 10/167 of epoch 1/2 complete. Losses: train_loss: 4.872
+  3%|▎         | 10/334 [03:05<1:31:20, 16.92s/it]  3%|▎         | 11/334 [03:22<1:30:40, 16.84s/it]  4%|▎         | 12/334 [03:39<1:30:03, 16.78s/it]  4%|▍         | 13/334 [03:55<1:29:40, 16.76s/it]  4%|▍         | 14/334 [04:12<1:29:10, 16.72s/it]  4%|▍         | 15/334 [04:29<1:28:55, 16.73s/it]  5%|▍         | 16/334 [04:45<1:28:38, 16.72s/it]  5%|▌         | 17/334 [05:02<1:28:24, 16.73s/it]  5%|▌         | 18/334 [05:19<1:27:58, 16.70s/it]  6%|▌         | 19/334 [05:35<1:27:34, 16.68s/it]Step 20/167 of epoch 1/2 complete. Losses: train_loss: 4.794
+  6%|▌         | 20/334 [05:52<1:27:17, 16.68s/it]  6%|▋         | 21/334 [06:09<1:26:56, 16.67s/it]  7%|▋         | 22/334 [06:26<1:26:53, 16.71s/it]  7%|▋         | 23/334 [06:42<1:26:31, 16.69s/it]  7%|▋         | 24/334 [06:59<1:26:13, 16.69s/it]  7%|▋         | 25/334 [07:16<1:25:50, 16.67s/it]  8%|▊         | 26/334 [07:32<1:25:32, 16.66s/it]  8%|▊         | 27/334 [07:49<1:25:19, 16.67s/it]  8%|▊         | 28/334 [08:06<1:25:02, 16.67s/it]  9%|▊         | 29/334 [08:22<1:24:54, 16.70s/it]Step 30/167 of epoch 1/2 complete. Losses: train_loss: 4.658
+  9%|▉         | 30/334 [08:39<1:24:32, 16.69s/it]

@@ -1,4 +1,4 @@
-# ALL THE ARGUMENTS HERE BCS ALL THIS UNTYPED ARGS EVERYWHERE 
+# ALL THE ARGUMENTS HERE BCS ALL THIS UNTYPED ARGS EVERYWHERE
 # loss = get_loss_fn(args.loss)  bro what's this how do u read n debug
 # _, _, checkpoint = load_checkpoint(args, model, pretrained=True)  also what's this?
 # in the code, the args are never typed but it's super crucial and annoying to keep track
@@ -38,8 +38,8 @@ class Args:
     gradient_checkpointing: bool = False
     num_epochs: int = 1
     offline: bool = False
-    logging_steps: int = 100
-    checkpoint_steps: int = 5000
+    logging_steps: int = 25
+    checkpoint_steps: int = 1085
 
     # Data args
     base_data_dir: str = "datasets"
@@ -53,7 +53,7 @@ class Args:
     conv_template_name: Optional[str] = None
     image_aspect_ratio: str = "pad"
     anyres_patch_sampling: bool = False
-    anyres_grids: List[Tuple[int, int]] = field(default_factory=lambda: [(1,2), (2,1), (2,2), (3,1), (1,3)])
+    anyres_grids: List[Tuple[int, int]] = field(default_factory=lambda: [(1, 2), (2, 1), (2, 2), (3, 1), (1, 3)])
 
     # Distributed training args
     dist_url: str = "env://"
@@ -78,12 +78,13 @@ class Args:
     unfreeze_vision_encoder: bool = False
     vision_encoder_precision: str = "fp32"
     cpu_offload_gradients: bool = False
+    deepspeed: bool = True
 
 
 def parse_args() -> Args:
     parser = argparse.ArgumentParser()
     # model configuration args
-    parser.add_argument("--model_family", default="xgenmm_v1", type=str, choices=['xgenmm_v1'])
+    parser.add_argument("--model_family", default="xgenmm_v1", type=str, choices=["xgenmm_v1"])
     parser.add_argument("--vision_encoder_path", default="ViT-SO400M-14-SigLIP-384", type=str)
     parser.add_argument("--vision_encoder_pretrained", default="webli", type=str)
     parser.add_argument("--lm_path", default="facebook/opt-1.3b", type=str)
@@ -112,7 +113,7 @@ def parse_args() -> Args:
     )
 
     # training args
-    parser.add_argument("--loss", type=str, choices=['supervised_finetune'], default="supervised_finetune")
+    parser.add_argument("--loss", type=str, choices=["supervised_finetune"], default="supervised_finetune")
     parser.add_argument(
         "--run_name",
         type=str,
@@ -277,15 +278,15 @@ def parse_args() -> Args:
         action="store_true",
         help="This specifies whether to offload parameters to CPU when not involved in computation. If True, then this offloads gradients to CPU as well, meaning that the optimizer step runs on CPU.",
     )
+    parser.add_argument("--deepspeed", default=False, action="store_true")
     return parser.parse_args()
 
 
 def parse_tuple_list(input_string):
     try:
-        tuples = input_string.strip().strip('()').split('),(')
+        tuples = input_string.strip().strip("()").split("),(")
         # Convert each item in the list to a tuple
-        tuple_list = [tuple(map(int, item.split(','))) for item in tuples]
+        tuple_list = [tuple(map(int, item.split(","))) for item in tuples]
         return tuple_list
     except Exception as e:
         raise argparse.ArgumentTypeError(f"Invalid tuple list format: {input_string}. Error: {e}")
-

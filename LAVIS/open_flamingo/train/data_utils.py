@@ -2,18 +2,12 @@
 Util functions for initializing webdataset objects
 """
 
-import ast
-import json
-import logging
-import os
-import random
-import sys
 from dataclasses import dataclass
 from multiprocessing import Value
 
 # import braceexpand
 # import webdataset as wds
-from torch.utils.data import DataLoader, IterableDataset, get_worker_info
+from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 # from webdataset.filters import _shuffle
 # from webdataset.tariterators import (
