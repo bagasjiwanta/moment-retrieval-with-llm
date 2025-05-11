@@ -154,12 +154,11 @@ def preprocess(
     3. Tokenize the concatenated conversation;
     4. Make a deepcopy as the target. Mask human words with IGNORE_INDEX.
     """
-    if conv_template_name is not None and conv_template_name in conversation_lib.conv_templates.keys():
+    # if conv_template_name is not None and conv_template_name in conversation_lib.conv_templates.keys():
         # Use the specified preproseccing func.
-        conv_template = conversation_lib.conv_templates[conv_template_name]
-    else:
-        conv_template = conversation_lib.default_conversation
-
+    conv_template = conversation_lib.conv_templates[conv_template_name]
+    # else:
+    #     conv_template = conversation_lib.default_conversation
     return preprocess_phi_3_new(sources, tokenizer)
 
 
@@ -254,61 +253,37 @@ class LazySupervisedDataset(Dataset):
             return success, None, None
         processor = self.image_processor
         img_size = image.size
-        if self.data_args.image_aspect_ratio == "pad":
+        # if self.data_args.image_aspect_ratio == "pad":
 
-            def expand2square(pil_img, background_color):
-                width, height = pil_img.size
-                if width == height:
-                    return pil_img
-                elif width > height:
-                    result = Image.new(pil_img.mode, (width, width), background_color)
-                    result.paste(pil_img, (0, (width - height) // 2))
-                    return result
-                else:
-                    result = Image.new(pil_img.mode, (height, height), background_color)
-                    result.paste(pil_img, ((height - width) // 2, 0))
-                    return result
+        #     def expand2square(pil_img, background_color):
+        #         width, height = pil_img.size
+        #         if width == height:
+        #             return pil_img
+        #         elif width > height:
+        #             result = Image.new(pil_img.mode, (width, width), background_color)
+        #             result.paste(pil_img, (0, (width - height) // 2))
+        #             return result
+        #         else:
+        #             result = Image.new(pil_img.mode, (height, height), background_color)
+        #             result.paste(pil_img, ((height - width) // 2, 0))
+        #             return result
 
-            # FIXME: Hardcoded workaround to work with torchvision.Compose()
-            image = expand2square(image, tuple(int(x * 255) for x in processor.transforms[-1].mean))
-            image = processor(image)  # FIXME: whether to take the 0-th item.
-        elif self.data_args.image_aspect_ratio == "anyres":
-            # Return image shape: [N_patch, C, H, W]
-            image = process_anyres_image(image, processor, self.anyres_grids)
-        else:
-            image = processor(image)
+        #     # FIXME: Hardcoded workaround to work with torchvision.Compose()
+        #     image = expand2square(image, tuple(int(x * 255) for x in processor.transforms[-1].mean))
+        #     image = processor(image)  # FIXME: whether to take the 0-th item.
+        # elif self.data_args.image_aspect_ratio == "anyres":
+        # Return image shape: [N_patch, C, H, W]
+        image = process_anyres_image(image, processor, self.anyres_grids)  # always use anyres
+        # else:
+            # image = processor(image)
 
         return success, image, img_size
 
-    def _check_img_token_nums(self, source):
-        keep_sample = True
-        if "image" not in source:
-            # Make sure no <image> token in text-only samples.
-            for conv in source["conversations"]:
-                n_img_token = conv["value"].count(DEFAULT_IMAGE_TOKEN)
-                if n_img_token > 0:
-                    keep_sample = False
-                    break
-            return keep_sample, source
-        n_image = len(source["image"]) if isinstance(source["image"], list) else 1
-        if n_image > 1:
-            # FIXME: the checker below doesn't work for mantis. Currently only check for single image data.
-            return keep_sample, source
-        for conv in source["conversations"]:
-            if conv["from"] == "human":
-                n_img_token = conv["value"].count(DEFAULT_IMAGE_TOKEN)
-                if not n_img_token == n_image:
-                    # print(source)
-                    conv["value"] = conv["value"].replace(DEFAULT_IMAGE_TOKEN, "").strip()
-                    conv["value"] = f"{DEFAULT_IMAGE_TOKEN}\n" * n_image + conv["value"]
-                break
-        return keep_sample, source
-
     def __getitem__(self, i) -> LazySupervisedDatasetOutput:
         sources = self.list_data_dict[i]
-        keep_sample, sources = self._check_img_token_nums(sources)
-        if not keep_sample:
-            return self.__getitem__(i + 1)
+        # keep_sample, sources = self._check_img_token_nums(sources)
+        # if not keep_sample:
+        #     return self.__getitem__(i + 1)
         if isinstance(i, int):
             sources = [sources]
         assert len(sources) == 1, "Don't know why it is wrapped to a list"  # FIXME
@@ -320,38 +295,34 @@ class LazySupervisedDataset(Dataset):
         if sources[0]["conversations"][0]["from"] != "system":
             sources[0]["conversations"] = [system_round] + sources[0]["conversations"]
 
+        qid = sources[0]["id"]
         if not self.split == "train":
             duration = sources[0]["duration"]
-            qid = sources[0]["id"]
             vid = sources[0]["vid"]
 
-        if "image" in sources[0]:
-            has_image = True
-            image_file = sources[0]["image"]
-            if isinstance(image_file, list):
-                # FIXME: Skipping samples with more than 4 images to avoid OOM issue. Done
-                if len(image_file) > 30:
-                    return self.__getitem__(i + 1)
-                image = []
-                img_size = []
-                for single_image in image_file:
-                    success, image_i, img_size_i = self._process_single_image(single_image)
-                    if not success:
-                        # Skip the entire sample if one of the images can't be opened.
-                        return self.__getitem__(i + 1)
-                    image.append(image_i)
-                    img_size.append(img_size_i)
-            elif isinstance(image_file, str):
-                success, image, img_size = self._process_single_image(image_file)
+        # if "image" in sources[0]:
+        image_file = sources[0]["image"]
+        if isinstance(image_file, list):
+            # # FIXME: Skipping samples with more than 4 images to avoid OOM issue. Done
+            # if len(image_file) > 30:
+            #     return self.__getitem__(i + 1)
+            image = []
+            img_size = []
+            for single_image in image_file:
+                success, image_i, img_size_i = self._process_single_image(single_image)
                 if not success:
                     # Skip the entire sample if one of the images can't be opened.
                     return self.__getitem__(i + 1)
-            else:
-                raise NotImplementedError(f"Unknown image_file type: {image_file}")
-            sources = copy.deepcopy([e["conversations"] for e in sources])
+                image.append(image_i)
+                img_size.append(img_size_i)
+        elif isinstance(image_file, str):
+            success, image, img_size = self._process_single_image(image_file)
+            if not success:
+                # Skip the entire sample if one of the images can't be opened.
+                return self.__getitem__(i + 1)
         else:
-            has_image = False
-            sources = copy.deepcopy([e["conversations"] for e in sources])
+            raise NotImplementedError(f"Unknown image_file type: {image_file}")
+        sources = copy.deepcopy([e["conversations"] for e in sources])
 
         data_dict = preprocess(sources, self.tokenizer, conv_template_name=self.conv_template_name)
         if isinstance(i, int):
@@ -359,36 +330,27 @@ class LazySupervisedDataset(Dataset):
                 input_ids=data_dict["input_ids"][0],
                 labels=data_dict["labels"][0],
             )
+            data_dict["qid"] = qid
             if not self.split == "train":
                 data_dict["duration"] = duration
-                data_dict["qid"] = qid
                 data_dict["vid"] = vid
 
         # image exist in the data
-        if has_image:
-            if isinstance(image, list):
-                # Multi-image, each image can be of 4-dim (anyres) or 3-dim (base res)
-                data_dict["image"] = image
-                if image[0].ndim == 3:
-                    # Stack base res image groups along the T-dim.
-                    image = torch.stack(image, dim=0)
-                    data_dict["image"] = image.unsqueeze(1)  # [T, 1, C, H, W]
-            elif image.ndim == 4:  # Any-res image patches of a single image - use the F dim for N-patches.
-                data_dict["image"] = image[None, :]
-            else:  # single image, single frame
-                data_dict["image"] = image[
-                    None, None, :
-                ]  # Expand dims with [T_img, F] to be compatible with flamingo-like vision encoding.
-            data_dict["image_size"] = img_size
-        else:
-            # image does not exist in the data, but the model is multimodal
-            crop_size = self.image_processor.transforms[
-                0
-            ].size  # FIXME: Hardcoded workaround to work with torchvision.Compose()
-            data_dict["image"] = torch.zeros(
-                1, 1, 3, crop_size[0], crop_size[1]
-            )  # Expand dims with [T_img, F] to be compatible with flamingo-like vision encoding.
-            data_dict["image_size"] = crop_size
+        # if has_image: image always exists
+        if isinstance(image, list):
+            # Multi-image, each image can be of 4-dim (anyres) or 3-dim (base res)
+            data_dict["image"] = image
+            if image[0].ndim == 3:
+                # Stack base res image groups along the T-dim.
+                image = torch.stack(image, dim=0)
+                data_dict["image"] = image.unsqueeze(1)  # [T, 1, C, H, W]
+        elif image.ndim == 4:  # Any-res image patches of a single image - use the F dim for N-patches.
+            data_dict["image"] = image[None, :]
+        else:  # single image, single frame
+            data_dict["image"] = image[
+                None, None, :
+            ]  # Expand dims with [T_img, F] to be compatible with flamingo-like vision encoding.
+        data_dict["image_size"] = img_size
         return data_dict
 
 

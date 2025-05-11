@@ -98,18 +98,15 @@ def main():
     random_seed(args.seed)
 
     # Initialize model
-    if args.model_family in ["xgenmm_v1"]:
-        additional_kwargs = {
-            "image_aspect_ratio": args.image_aspect_ratio,
-            "num_vision_tokens": args.num_vision_tokens,
-            "anyres_patch_sampling": args.anyres_patch_sampling,
-        }
-    else:
-        additional_kwargs = {}
+    # if args.model_family in ["xgenmm_v1"]:
+    additional_kwargs = {
+        "image_aspect_ratio": args.image_aspect_ratio,
+        "num_vision_tokens": args.num_vision_tokens,
+        "anyres_patch_sampling": args.anyres_patch_sampling,
+    }
 
     model, image_processor, tokenizer = create_model_and_transforms(
-        clip_vision_encoder_path=args.vision_encoder_path,
-        clip_vision_encoder_pretrained=args.vision_encoder_pretrained,
+        vision_encoder_path=args.vision_encoder_path,
         lang_model_path=args.lm_path,
         tokenizer_path=args.tokenizer_path if args.tokenizer_path else args.lm_path,
         model_family=args.model_family,
@@ -205,7 +202,7 @@ def main():
                 {"params": params_without_wd, "weight_decay": 0.0},
             ],
             lr=args.learning_rate,
-            set_grad_none=True
+            set_grad_none=True,
         )
 
     # load optimizer checkpoint

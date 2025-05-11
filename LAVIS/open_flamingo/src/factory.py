@@ -26,15 +26,15 @@ def _convert_image_to_rgb(image):
     return image.convert("RGB")
 
 def create_model_and_transforms(
-    clip_vision_encoder_path: str,
-    clip_vision_encoder_pretrained: str,
+    vision_encoder_path: str,
+    # clip_vision_encoder_pretrained: str,
     lang_model_path: str,
     tokenizer_path: str,
-    model_family: str = "flamingo",
+    model_family: str = "xgenmm_v1",
     pretrained_vision_tokenizer: Optional[str] = None,
     use_local_files: bool = False,
     decoder_layers_attr_name: str = None,
-    cache_dir: Optional[str] = None,
+    # cache_dir: Optional[str] = None,
     gradient_checkpointing: bool = False,
     verbose: bool = True,
     anyres_grids: List[Tuple[int]] = [],
@@ -67,8 +67,8 @@ def create_model_and_transforms(
     # load vision encoder
     # "google/siglip-so400m-patch14-384"
 
-    model = AutoModel.from_pretrained(clip_vision_encoder_path)
-    hf_processor = AutoProcessor.from_pretrained(clip_vision_encoder_path)
+    model = AutoModel.from_pretrained(vision_encoder_path)
+    hf_processor = AutoProcessor.from_pretrained(vision_encoder_path)
     n_px = hf_processor.image_processor.size['height']
     vision_encoder = model.vision_model
     vis_hidden_dim = vision_encoder.config.hidden_size
