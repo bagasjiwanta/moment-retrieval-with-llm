@@ -1,0 +1,3 @@
+data_path: {
+  '/workspace/annotations/raw/highlights_train': 2000,
+}

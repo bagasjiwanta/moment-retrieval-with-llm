@@ -25,15 +25,9 @@ if __name__ == "__main__":
 
     # Load model from HF hub.
     model_name_or_path = "Salesforce/xgen-mm-phi3-mini-base-r-v1.5"
-    model = AutoModelForVision2Seq.from_pretrained(
-        model_name_or_path, trust_remote_code=True
-    )
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_name_or_path, trust_remote_code=True, use_fast=True, legacy=False
-    )
-    image_processor = AutoImageProcessor.from_pretrained(
-        model_name_or_path, trust_remote_code=True
-    )
+    model = AutoModelForVision2Seq.from_pretrained(model_name_or_path, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, trust_remote_code=True, use_fast=True, legacy=False)
+    image_processor = AutoImageProcessor.from_pretrained(model_name_or_path, trust_remote_code=True)
     tokenizer = model.update_special_tokens(tokenizer)
 
     # Test weight loading.
@@ -58,12 +52,13 @@ if __name__ == "__main__":
 
     # Initialize the model.
     local_model, _, _ = create_model_and_transforms(
-        clip_vision_encoder_path=cfg.vision_encoder_path,
+        vision_encoder_path=cfg.vision_encoder_path,
         clip_vision_encoder_pretrained=cfg.vision_encoder_pretrained,
         lang_model_path=cfg.lm_path,
         tokenizer_path=cfg.lm_path,
         model_family=cfg.model_family,
         **additional_kwargs,
+        use_flash_attention_2=True,
     )
 
     try:

@@ -1,0 +1,81 @@
+usage: instruction_finetune.py [-h] [--model_family {xgenmm_v1}]
+                               [--vision_encoder_path VISION_ENCODER_PATH]
+                               [--vision_encoder_pretrained VISION_ENCODER_PRETRAINED]
+                               [--lm_path LM_PATH]
+                               [--tokenizer_path TOKENIZER_PATH] [--lora]
+                               [--cross_attn_every_n_layers CROSS_ATTN_EVERY_N_LAYERS]
+                               [--num_vision_tokens NUM_VISION_TOKENS]
+                               [--pretrained PRETRAINED]
+                               [--pretrained_vision_tokenizer PRETRAINED_VISION_TOKENIZER]
+                               [--loss {supervised_finetune}]
+                               [--run_name RUN_NAME]
+                               [--resume_from_checkpoint RESUME_FROM_CHECKPOINT]
+                               [--delete_previous_checkpoint]
+                               [--no_save_optim_state]
+                               [--gradient_accumulation_steps GRADIENT_ACCUMULATION_STEPS]
+                               [--seed SEED] [--learning_rate LEARNING_RATE]
+                               [--lr_scheduler LR_SCHEDULER]
+                               [--warmup_steps WARMUP_STEPS]
+                               [--weight_decay WEIGHT_DECAY]
+                               [--precision {amp_bf16,amp_bfloat16,bf16,fp16,fp32}]
+                               [--gradient_checkpointing]
+                               [--num_epochs NUM_EPOCHS] [--offline]
+                               [--logging_steps LOGGING_STEPS]
+                               [--checkpoint_steps CHECKPOINT_STEPS]
+                               [--data_path DATA_PATH]
+                               [--batch_size BATCH_SIZE] [--workers WORKERS]
+                               [--data_sampler_group_by_length]
+                               [--is_multimodal IS_MULTIMODAL]
+                               [--mm_use_im_start_end]
+                               [--conv_template_name CONV_TEMPLATE_NAME]
+                               [--image_aspect_ratio IMAGE_ASPECT_RATIO]
+                               [--anyres_patch_sampling]
+                               [--anyres_grids ANYRES_GRIDS]
+                               [--dist-url DIST_URL]
+                               [--dist-backend DIST_BACKEND] [--horovod]
+                               [--no-set-device-rank]
+                               [--local-rank LOCAL_RANK] [--fsdp]
+                               [--fsdp_sharding_strategy {full,hybrid,shard_grad_op,hybrid_shard_grad_op,no_shard}]
+                               [--report_to_wandb]
+                               [--wandb_project WANDB_PROJECT]
+                               [--wandb_entity WANDB_ENTITY]
+                               [--save_checkpoints_to_wandb] [--dryrun]
+                               [--use_flash_attention_2]
+                               [--unfreeze_vision_encoder]
+                               [--vision_encoder_precision {bf16,fp32}]
+                               [--cpu_offload_gradients]
+instruction_finetune.py: error: argument --data_path: expected one argument
+[2025-05-09 07:34:43,409] torch.distributed.elastic.multiprocessing.api: [ERROR] failed (exitcode: 2) local_rank: 0 (pid: 3901) of binary: /usr/bin/python
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/usr/local/lib/python3.10/dist-packages/torch/distributed/run.py", line 810, in <module>
+    main()
+  File "/usr/local/lib/python3.10/dist-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 346, in wrapper
+    return f(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/distributed/run.py", line 806, in main
+    run(args)
+  File "/usr/local/lib/python3.10/dist-packages/torch/distributed/run.py", line 797, in run
+    elastic_launch(
+  File "/usr/local/lib/python3.10/dist-packages/torch/distributed/launcher/api.py", line 134, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+  File "/usr/local/lib/python3.10/dist-packages/torch/distributed/launcher/api.py", line 264, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+open_flamingo/train/instruction_finetune.py FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2025-05-09_07:34:43
+  host      : 5a5e9de17c8a
+  rank      : 0 (local_rank: 0)
+  exitcode  : 2 (pid: 3901)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================

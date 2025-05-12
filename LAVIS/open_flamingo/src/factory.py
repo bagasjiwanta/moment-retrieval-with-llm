@@ -26,15 +26,15 @@ def _convert_image_to_rgb(image):
     return image.convert("RGB")
 
 def create_model_and_transforms(
-    clip_vision_encoder_path: str,
-    clip_vision_encoder_pretrained: str,
+    vision_encoder_path: str,
+    # clip_vision_encoder_pretrained: str,
     lang_model_path: str,
     tokenizer_path: str,
-    model_family: str = "flamingo",
+    model_family: str = "xgenmm_v1",
     pretrained_vision_tokenizer: Optional[str] = None,
     use_local_files: bool = False,
     decoder_layers_attr_name: str = None,
-    cache_dir: Optional[str] = None,
+    # cache_dir: Optional[str] = None,
     gradient_checkpointing: bool = False,
     verbose: bool = True,
     anyres_grids: List[Tuple[int]] = [],
@@ -65,47 +65,21 @@ def create_model_and_transforms(
     assert model_family in SUPPORTED_MODEL_FAMILIES
 
     # load vision encoder
-    if clip_vision_encoder_pretrained == 'openai':
-        vision_encoder = CLIPVisionModel.from_pretrained(clip_vision_encoder_path)
-        hf_processor = CLIPImageProcessor.from_pretrained(clip_vision_encoder_path)
-        n_px = hf_processor.crop_size['height']
-        # Use torchvision processor to be consistent with other vision encoders.
-        # https://github.com/openai/CLIP/blob/main/clip/clip.py
-        image_processor = Compose([
-                                Resize((n_px, n_px), interpolation=BICUBIC),
-                                CenterCrop(n_px),
-                                _convert_image_to_rgb,
-                                ToTensor(),
-                                Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
-                            ])
-        vis_hidden_dim = vision_encoder.config.hidden_size
-    elif clip_vision_encoder_pretrained == 'google':
-        # "google/siglip-so400m-patch14-384"
-        model = AutoModel.from_pretrained(clip_vision_encoder_path)
-        hf_processor = AutoProcessor.from_pretrained(clip_vision_encoder_path)
-        n_px = hf_processor.image_processor.size['height']
-        vision_encoder = model.vision_model
-        vis_hidden_dim = vision_encoder.config.hidden_size
-        
-        # Define the transformation sequence
-        image_processor = Compose([
-            Resize((n_px, n_px), interpolation=InterpolationMode.BICUBIC, antialias=True),
-            Lambda(lambda x: x.convert('RGB') if x.mode != 'RGB' else x),
-            ToTensor(),
-            Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
-        ])
-    else:
-        vision_encoder, _, image_processor = open_clip.create_model_and_transforms(
-            clip_vision_encoder_path,
-            pretrained=clip_vision_encoder_pretrained,
-        )
-        vision_encoder.visual.output_tokens = True
-        vision_encoder = vision_encoder.visual
-        vision_encoder_config = open_clip.get_model_config(clip_vision_encoder_path)
-        if "SigLIP" in clip_vision_encoder_path or "EVA" in clip_vision_encoder_path: # SigLIP models have a different config format
-            vis_hidden_dim = vision_encoder_config["embed_dim"]
-        else:    
-            vis_hidden_dim = vision_encoder_config["vision_cfg"]["width"]
+    # "google/siglip-so400m-patch14-384"
+
+    model = AutoModel.from_pretrained(vision_encoder_path)
+    hf_processor = AutoProcessor.from_pretrained(vision_encoder_path)
+    n_px = hf_processor.image_processor.size['height']
+    vision_encoder = model.vision_model
+    vis_hidden_dim = vision_encoder.config.hidden_size
+    
+    # Define the transformation sequence
+    image_processor = Compose([
+        Resize((n_px, n_px), interpolation=InterpolationMode.BICUBIC, antialias=True),
+        Lambda(lambda x: x.convert('RGB') if x.mode != 'RGB' else x),
+        ToTensor(),
+        Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
+    ])
 
     # load tokenizer and ensure there is a pad token
     text_tokenizer = AutoTokenizer.from_pretrained(
@@ -125,7 +99,8 @@ def create_model_and_transforms(
     if ('phi3' in lang_model_path.lower()) or ('phi-3' in lang_model_path.lower()):
         if 'instruct' not in lang_model_path.lower():
             raise ValueError("As of now, we only support instruct models for phi3. Please use a model with 'instruct' in the path.")
-        trust_remote_code_flag = True # phi3 is not stable yet, so we trust the remote code
+        trust_remote_code_flag = False # phi3 is not stable yet, so we trust the remote code  
+        # Change to False because now loading from hf's Phi3 gave error in >=4.49
     else:
         trust_remote_code_flag = False # froce to use modeling code from local files so that the fsdp wrapper can be applied
     lang_model = AutoModelForCausalLM.from_pretrained(

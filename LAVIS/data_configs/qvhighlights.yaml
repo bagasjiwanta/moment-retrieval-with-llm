@@ -1,0 +1,14 @@
+# {name}.yaml 
+#   {split}
+#     annotations:
+#       {annotations_dir} : {n_sample}
+#     videos: {videos_dir}
+
+train:
+  annotations:
+    ../datasets/qvhighlights/annotations/processed/highlight_train_release.json: 1000
+  videos: ../datasets/qvhighlights/videos/processed
+val:
+  annotations:
+    ../datasets/qvhighlights/annotations/processed/highlight_val_release.json: 200
+  videos: ../datasets/qvhighlights/videos/processed

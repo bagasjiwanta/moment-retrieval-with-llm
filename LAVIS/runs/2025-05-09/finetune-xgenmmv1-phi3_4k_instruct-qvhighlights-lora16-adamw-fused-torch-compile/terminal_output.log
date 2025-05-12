@@ -1,0 +1,646 @@
+================== Parsed Arguments ===================
+anyres_grids: [(1, 2), (2, 1), (2, 2), (3, 1), (1, 3)]
+anyres_patch_sampling: True
+batch_size: 6
+checkpoint_steps: 500
+conv_template_name: phi_3
+cpu_offload_gradients: False
+cross_attn_every_n_layers: 1
+data_path: qvhighlights
+data_sampler_group_by_length: True
+delete_previous_checkpoint: False
+dist_backend: nccl
+dist_url: env://
+dryrun: False
+fsdp: False
+fsdp_sharding_strategy: full
+gradient_accumulation_steps: 8
+gradient_checkpointing: True
+horovod: False
+image_aspect_ratio: anyres
+is_multimodal: True
+learning_rate: 2e-05
+lm_path: microsoft/Phi-3-mini-4k-instruct
+local_rank: 0
+logging_steps: 50
+lora: True
+loss: supervised_finetune
+lr_scheduler: cosine
+mm_use_im_start_end: False
+model_family: xgenmm_v1
+no_save_optim_state: True
+no_set_device_rank: False
+num_epochs: 2
+num_vision_tokens: 128
+offline: False
+precision: amp_bf16
+pretrained: /workspace/moment-retrieval-with-llm/base_model_weight/xgen-mm-phi3-mini-base-r-v1.5.pt
+pretrained_vision_tokenizer: None
+report_to_wandb: False
+resume_from_checkpoint: None
+run_name: finetune-xgenmmv1-phi3_4k_instruct-qvhighlights-lora16-adamw-fused-torch-compile
+save_checkpoints_to_wandb: False
+seed: 42
+tokenizer_path: microsoft/Phi-3-mini-4k-instruct
+unfreeze_vision_encoder: False
+use_flash_attention_2: True
+vision_encoder_path: google/siglip-so400m-patch14-384
+vision_encoder_precision: fp32
+vision_encoder_pretrained: google
+wandb_entity: None
+wandb_project: None
+warmup_steps: 1085
+weight_decay: 0.0
+workers: 8
+=======================================================
+Initializing distributed training with 1 GPUs.
+Using a slow image processor as `use_fast` is unset and a slow processor was saved with this model. `use_fast=True` will be the default behavior in v4.52, even if the model was saved with a slow processor. This will result in minor differences in outputs. You'll still be able to use a slow processor with `use_fast=False`.
+You are attempting to use Flash Attention 2.0 with a model not initialized on GPU. Make sure to move the model to GPU after initializing it on CPU with `model.to('cuda')`.
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:01<00:01,  1.93s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:01<00:00,  1.02it/s]
+xgenmm_v1 model initialized with 3,931,031,619 trainable parameters
+==========Trainable Parameters
+Vision encoder: 0 trainable parameters
+Vision tokenizer: 109,901,568 trainable parameters
+Language model: 3,821,130,051 trainable parameters
+==========Total Parameters
+Vision encoder: 428,225,600 parameters
+Vision tokenizer: 109,901,568 parameters
+Language model: 3,821,130,051 parameters
+==========
+Loading checkpoint from /workspace/moment-retrieval-with-llm/base_model_weight/xgen-mm-phi3-mini-base-r-v1.5.pt
+Missing keys: []
+Unexpected keys: []
+Finished loading checkpoint...
+Wrapping model in LoRA
+================== Trainable Parameters ===================
+vision_tokenizer.projection
+vision_tokenizer.layers.0.0.to_q
+vision_tokenizer.layers.0.0.to_kv
+vision_tokenizer.layers.0.0.to_out
+vision_tokenizer.layers.0.1.1
+vision_tokenizer.layers.0.1.3
+vision_tokenizer.layers.1.0.to_q
+vision_tokenizer.layers.1.0.to_kv
+vision_tokenizer.layers.1.0.to_out
+vision_tokenizer.layers.1.1.1
+vision_tokenizer.layers.1.1.3
+vision_tokenizer.layers.2.0.to_q
+vision_tokenizer.layers.2.0.to_kv
+vision_tokenizer.layers.2.0.to_out
+vision_tokenizer.layers.2.1.1
+vision_tokenizer.layers.2.1.3
+vision_tokenizer.layers.3.0.to_q
+vision_tokenizer.layers.3.0.to_kv
+vision_tokenizer.layers.3.0.to_out
+vision_tokenizer.layers.3.1.1
+vision_tokenizer.layers.3.1.3
+vision_tokenizer.layers.4.0.to_q
+vision_tokenizer.layers.4.0.to_kv
+vision_tokenizer.layers.4.0.to_out
+vision_tokenizer.layers.4.1.1
+vision_tokenizer.layers.4.1.3
+vision_tokenizer.layers.5.0.to_q
+vision_tokenizer.layers.5.0.to_kv
+vision_tokenizer.layers.5.0.to_out
+vision_tokenizer.layers.5.1.1
+vision_tokenizer.layers.5.1.3
+lang_model.model.layers.0.self_attn.o_proj
+lang_model.model.layers.0.self_attn.qkv_proj
+lang_model.model.layers.0.mlp.gate_up_proj
+lang_model.model.layers.0.mlp.down_proj
+lang_model.model.layers.1.self_attn.o_proj
+lang_model.model.layers.1.self_attn.qkv_proj
+lang_model.model.layers.1.mlp.gate_up_proj
+lang_model.model.layers.1.mlp.down_proj
+lang_model.model.layers.2.self_attn.o_proj
+lang_model.model.layers.2.self_attn.qkv_proj
+lang_model.model.layers.2.mlp.gate_up_proj
+lang_model.model.layers.2.mlp.down_proj
+lang_model.model.layers.3.self_attn.o_proj
+lang_model.model.layers.3.self_attn.qkv_proj
+lang_model.model.layers.3.mlp.gate_up_proj
+lang_model.model.layers.3.mlp.down_proj
+lang_model.model.layers.4.self_attn.o_proj
+lang_model.model.layers.4.self_attn.qkv_proj
+lang_model.model.layers.4.mlp.gate_up_proj
+lang_model.model.layers.4.mlp.down_proj
+lang_model.model.layers.5.self_attn.o_proj
+lang_model.model.layers.5.self_attn.qkv_proj
+lang_model.model.layers.5.mlp.gate_up_proj
+lang_model.model.layers.5.mlp.down_proj
+lang_model.model.layers.6.self_attn.o_proj
+lang_model.model.layers.6.self_attn.qkv_proj
+lang_model.model.layers.6.mlp.gate_up_proj
+lang_model.model.layers.6.mlp.down_proj
+lang_model.model.layers.7.self_attn.o_proj
+lang_model.model.layers.7.self_attn.qkv_proj
+lang_model.model.layers.7.mlp.gate_up_proj
+lang_model.model.layers.7.mlp.down_proj
+lang_model.model.layers.8.self_attn.o_proj
+lang_model.model.layers.8.self_attn.qkv_proj
+lang_model.model.layers.8.mlp.gate_up_proj
+lang_model.model.layers.8.mlp.down_proj
+lang_model.model.layers.9.self_attn.o_proj
+lang_model.model.layers.9.self_attn.qkv_proj
+lang_model.model.layers.9.mlp.gate_up_proj
+lang_model.model.layers.9.mlp.down_proj
+lang_model.model.layers.10.self_attn.o_proj
+lang_model.model.layers.10.self_attn.qkv_proj
+lang_model.model.layers.10.mlp.gate_up_proj
+lang_model.model.layers.10.mlp.down_proj
+lang_model.model.layers.11.self_attn.o_proj
+lang_model.model.layers.11.self_attn.qkv_proj
+lang_model.model.layers.11.mlp.gate_up_proj
+lang_model.model.layers.11.mlp.down_proj
+lang_model.model.layers.12.self_attn.o_proj
+lang_model.model.layers.12.self_attn.qkv_proj
+lang_model.model.layers.12.mlp.gate_up_proj
+lang_model.model.layers.12.mlp.down_proj
+lang_model.model.layers.13.self_attn.o_proj
+lang_model.model.layers.13.self_attn.qkv_proj
+lang_model.model.layers.13.mlp.gate_up_proj
+lang_model.model.layers.13.mlp.down_proj
+lang_model.model.layers.14.self_attn.o_proj
+lang_model.model.layers.14.self_attn.qkv_proj
+lang_model.model.layers.14.mlp.gate_up_proj
+lang_model.model.layers.14.mlp.down_proj
+lang_model.model.layers.15.self_attn.o_proj
+lang_model.model.layers.15.self_attn.qkv_proj
+lang_model.model.layers.15.mlp.gate_up_proj
+lang_model.model.layers.15.mlp.down_proj
+lang_model.model.layers.16.self_attn.o_proj
+lang_model.model.layers.16.self_attn.qkv_proj
+lang_model.model.layers.16.mlp.gate_up_proj
+lang_model.model.layers.16.mlp.down_proj
+lang_model.model.layers.17.self_attn.o_proj
+lang_model.model.layers.17.self_attn.qkv_proj
+lang_model.model.layers.17.mlp.gate_up_proj
+lang_model.model.layers.17.mlp.down_proj
+lang_model.model.layers.18.self_attn.o_proj
+lang_model.model.layers.18.self_attn.qkv_proj
+lang_model.model.layers.18.mlp.gate_up_proj
+lang_model.model.layers.18.mlp.down_proj
+lang_model.model.layers.19.self_attn.o_proj
+lang_model.model.layers.19.self_attn.qkv_proj
+lang_model.model.layers.19.mlp.gate_up_proj
+lang_model.model.layers.19.mlp.down_proj
+lang_model.model.layers.20.self_attn.o_proj
+lang_model.model.layers.20.self_attn.qkv_proj
+lang_model.model.layers.20.mlp.gate_up_proj
+lang_model.model.layers.20.mlp.down_proj
+lang_model.model.layers.21.self_attn.o_proj
+lang_model.model.layers.21.self_attn.qkv_proj
+lang_model.model.layers.21.mlp.gate_up_proj
+lang_model.model.layers.21.mlp.down_proj
+lang_model.model.layers.22.self_attn.o_proj
+lang_model.model.layers.22.self_attn.qkv_proj
+lang_model.model.layers.22.mlp.gate_up_proj
+lang_model.model.layers.22.mlp.down_proj
+lang_model.model.layers.23.self_attn.o_proj
+lang_model.model.layers.23.self_attn.qkv_proj
+lang_model.model.layers.23.mlp.gate_up_proj
+lang_model.model.layers.23.mlp.down_proj
+lang_model.model.layers.24.self_attn.o_proj
+lang_model.model.layers.24.self_attn.qkv_proj
+lang_model.model.layers.24.mlp.gate_up_proj
+lang_model.model.layers.24.mlp.down_proj
+lang_model.model.layers.25.self_attn.o_proj
+lang_model.model.layers.25.self_attn.qkv_proj
+lang_model.model.layers.25.mlp.gate_up_proj
+lang_model.model.layers.25.mlp.down_proj
+lang_model.model.layers.26.self_attn.o_proj
+lang_model.model.layers.26.self_attn.qkv_proj
+lang_model.model.layers.26.mlp.gate_up_proj
+lang_model.model.layers.26.mlp.down_proj
+lang_model.model.layers.27.self_attn.o_proj
+lang_model.model.layers.27.self_attn.qkv_proj
+lang_model.model.layers.27.mlp.gate_up_proj
+lang_model.model.layers.27.mlp.down_proj
+lang_model.model.layers.28.self_attn.o_proj
+lang_model.model.layers.28.self_attn.qkv_proj
+lang_model.model.layers.28.mlp.gate_up_proj
+lang_model.model.layers.28.mlp.down_proj
+lang_model.model.layers.29.self_attn.o_proj
+lang_model.model.layers.29.self_attn.qkv_proj
+lang_model.model.layers.29.mlp.gate_up_proj
+lang_model.model.layers.29.mlp.down_proj
+lang_model.model.layers.30.self_attn.o_proj
+lang_model.model.layers.30.self_attn.qkv_proj
+lang_model.model.layers.30.mlp.gate_up_proj
+lang_model.model.layers.30.mlp.down_proj
+lang_model.model.layers.31.self_attn.o_proj
+lang_model.model.layers.31.self_attn.qkv_proj
+lang_model.model.layers.31.mlp.gate_up_proj
+lang_model.model.layers.31.mlp.down_proj
+lang_model.lm_head.additional_fc
+===========================================================
+trainable params: 27,310,128 || all params: 4,386,567,347 || trainable%: 0.6226
+================== Data mixture config ===================
+qvhighlights
+{
+    "train": {
+        "annotations": {
+            "../datasets/qvhighlights/annotations/processed/highlight_train_release.json": 1000
+        },
+        "videos": "../datasets/qvhighlights/videos/processed"
+    },
+    "val": {
+        "annotations": {
+            "../datasets/qvhighlights/annotations/processed/highlight_val_release.json": 200
+        },
+        "videos": "../datasets/qvhighlights/videos/processed"
+    }
+}
+==========================================================
+Total training steps: 40
+DistributedDataParallel(
+  (module): OptimizedModule(
+    (_orig_mod): PeftModel(
+      (base_model): LoraModel(
+        (model): XGenMMPerceiver(
+          (vision_encoder): SiglipVisionTransformer(
+            (embeddings): SiglipVisionEmbeddings(
+              (patch_embedding): Conv2d(3, 1152, kernel_size=(14, 14), stride=(14, 14), padding=valid)
+              (position_embedding): Embedding(729, 1152)
+            )
+            (encoder): SiglipEncoder(
+              (layers): ModuleList(
+                (0-26): 27 x SiglipEncoderLayer(
+                  (layer_norm1): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+                  (self_attn): SiglipAttention(
+                    (k_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                    (v_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                    (q_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                    (out_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                  )
+                  (layer_norm2): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+                  (mlp): SiglipMLP(
+                    (activation_fn): PytorchGELUTanh()
+                    (fc1): Linear(in_features=1152, out_features=4304, bias=True)
+                    (fc2): Linear(in_features=4304, out_features=1152, bias=True)
+                  )
+                )
+              )
+            )
+            (post_layernorm): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+            (head): SiglipMultiheadAttentionPoolingHead(
+              (attention): MultiheadAttention(
+                (out_proj): NonDynamicallyQuantizableLinear(in_features=1152, out_features=1152, bias=True)
+              )
+              (layernorm): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+              (mlp): SiglipMLP(
+                (activation_fn): PytorchGELUTanh()
+                (fc1): Linear(in_features=1152, out_features=4304, bias=True)
+                (fc2): Linear(in_features=4304, out_features=1152, bias=True)
+              )
+            )
+          )
+          (vision_tokenizer): CheckpointWrapper(
+            (_checkpoint_wrapped_module): PerceiverResampler(
+              (projection): lora.Linear(
+                (base_layer): Linear(in_features=1152, out_features=3072, bias=True)
+                (lora_dropout): ModuleDict(
+                  (default): Dropout(p=0.05, inplace=False)
+                )
+                (lora_A): ModuleDict(
+                  (default): Linear(in_features=1152, out_features=16, bias=False)
+                )
+                (lora_B): ModuleDict(
+                  (default): Linear(in_features=16, out_features=3072, bias=False)
+                )
+                (lora_embedding_A): ParameterDict()
+                (lora_embedding_B): ParameterDict()
+                (lora_magnitude_vector): ModuleDict()
+              )
+              (layers): ModuleList(
+                (0-5): 6 x ModuleList(
+                  (0): PerceiverAttention(
+                    (norm_media): LayerNorm((1152,), eps=1e-05, elementwise_affine=True)
+                    (norm_latents): LayerNorm((1152,), eps=1e-05, elementwise_affine=True)
+                    (to_q): lora.Linear(
+                      (base_layer): Linear(in_features=1152, out_features=1536, bias=False)
+                      (lora_dropout): ModuleDict(
+                        (default): Dropout(p=0.05, inplace=False)
+                      )
+                      (lora_A): ModuleDict(
+                        (default): Linear(in_features=1152, out_features=16, bias=False)
+                      )
+                      (lora_B): ModuleDict(
+                        (default): Linear(in_features=16, out_features=1536, bias=False)
+                      )
+                      (lora_embedding_A): ParameterDict()
+                      (lora_embedding_B): ParameterDict()
+                      (lora_magnitude_vector): ModuleDict()
+                    )
+                    (to_kv): lora.Linear(
+                      (base_layer): Linear(in_features=1152, out_features=3072, bias=False)
+                      (lora_dropout): ModuleDict(
+                        (default): Dropout(p=0.05, inplace=False)
+                      )
+                      (lora_A): ModuleDict(
+                        (default): Linear(in_features=1152, out_features=16, bias=False)
+                      )
+                      (lora_B): ModuleDict(
+                        (default): Linear(in_features=16, out_features=3072, bias=False)
+                      )
+                      (lora_embedding_A): ParameterDict()
+                      (lora_embedding_B): ParameterDict()
+                      (lora_magnitude_vector): ModuleDict()
+                    )
+                    (to_out): lora.Linear(
+                      (base_layer): Linear(in_features=1536, out_features=1152, bias=False)
+                      (lora_dropout): ModuleDict(
+                        (default): Dropout(p=0.05, inplace=False)
+                      )
+                      (lora_A): ModuleDict(
+                        (default): Linear(in_features=1536, out_features=16, bias=False)
+                      )
+                      (lora_B): ModuleDict(
+                        (default): Linear(in_features=16, out_features=1152, bias=False)
+                      )
+                      (lora_embedding_A): ParameterDict()
+                      (lora_embedding_B): ParameterDict()
+                      (lora_magnitude_vector): ModuleDict()
+                    )
+                  )
+                  (1): Sequential(
+                    (0): LayerNorm((1152,), eps=1e-05, elementwise_affine=True)
+                    (1): lora.Linear(
+                      (base_layer): Linear(in_features=1152, out_features=4608, bias=False)
+                      (lora_dropout): ModuleDict(
+                        (default): Dropout(p=0.05, inplace=False)
+                      )
+                      (lora_A): ModuleDict(
+                        (default): Linear(in_features=1152, out_features=16, bias=False)
+                      )
+                      (lora_B): ModuleDict(
+                        (default): Linear(in_features=16, out_features=4608, bias=False)
+                      )
+                      (lora_embedding_A): ParameterDict()
+                      (lora_embedding_B): ParameterDict()
+                      (lora_magnitude_vector): ModuleDict()
+                    )
+                    (2): GELU(approximate='none')
+                    (3): lora.Linear(
+                      (base_layer): Linear(in_features=4608, out_features=1152, bias=False)
+                      (lora_dropout): ModuleDict(
+                        (default): Dropout(p=0.05, inplace=False)
+                      )
+                      (lora_A): ModuleDict(
+                        (default): Linear(in_features=4608, out_features=16, bias=False)
+                      )
+                      (lora_B): ModuleDict(
+                        (default): Linear(in_features=16, out_features=1152, bias=False)
+                      )
+                      (lora_embedding_A): ParameterDict()
+                      (lora_embedding_B): ParameterDict()
+                      (lora_magnitude_vector): ModuleDict()
+                    )
+                  )
+                )
+              )
+              (norm): LayerNorm((1152,), eps=1e-05, elementwise_affine=True)
+            )
+          )
+          (lang_model): Phi3ForCausalLM(
+            (model): Phi3Model(
+              (embed_tokens): DecoupledEmbedding(
+                num_original_embeddings=32012, num_additional_embeddings=3, embedding_dim=3072, partially_freeze=True
+                (additional_embedding): Embedding(3, 3072)
+              )
+              (layers): ModuleList(
+                (0-31): 32 x CheckpointWrapper(
+                  (_checkpoint_wrapped_module): Phi3DecoderLayer(
+                    (self_attn): Phi3Attention(
+                      (o_proj): lora.Linear(
+                        (base_layer): Linear(in_features=3072, out_features=3072, bias=False)
+                        (lora_dropout): ModuleDict(
+                          (default): Dropout(p=0.05, inplace=False)
+                        )
+                        (lora_A): ModuleDict(
+                          (default): Linear(in_features=3072, out_features=16, bias=False)
+                        )
+                        (lora_B): ModuleDict(
+                          (default): Linear(in_features=16, out_features=3072, bias=False)
+                        )
+                        (lora_embedding_A): ParameterDict()
+                        (lora_embedding_B): ParameterDict()
+                        (lora_magnitude_vector): ModuleDict()
+                      )
+                      (qkv_proj): lora.Linear(
+                        (base_layer): Linear(in_features=3072, out_features=9216, bias=False)
+                        (lora_dropout): ModuleDict(
+                          (default): Dropout(p=0.05, inplace=False)
+                        )
+                        (lora_A): ModuleDict(
+                          (default): Linear(in_features=3072, out_features=16, bias=False)
+                        )
+                        (lora_B): ModuleDict(
+                          (default): Linear(in_features=16, out_features=9216, bias=False)
+                        )
+                        (lora_embedding_A): ParameterDict()
+                        (lora_embedding_B): ParameterDict()
+                        (lora_magnitude_vector): ModuleDict()
+                      )
+                    )
+                    (mlp): Phi3MLP(
+                      (gate_up_proj): lora.Linear(
+                        (base_layer): Linear(in_features=3072, out_features=16384, bias=False)
+                        (lora_dropout): ModuleDict(
+                          (default): Dropout(p=0.05, inplace=False)
+                        )
+                        (lora_A): ModuleDict(
+                          (default): Linear(in_features=3072, out_features=16, bias=False)
+                        )
+                        (lora_B): ModuleDict(
+                          (default): Linear(in_features=16, out_features=16384, bias=False)
+                        )
+                        (lora_embedding_A): ParameterDict()
+                        (lora_embedding_B): ParameterDict()
+                        (lora_magnitude_vector): ModuleDict()
+                      )
+                      (down_proj): lora.Linear(
+                        (base_layer): Linear(in_features=8192, out_features=3072, bias=False)
+                        (lora_dropout): ModuleDict(
+                          (default): Dropout(p=0.05, inplace=False)
+                        )
+                        (lora_A): ModuleDict(
+                          (default): Linear(in_features=8192, out_features=16, bias=False)
+                        )
+                        (lora_B): ModuleDict(
+                          (default): Linear(in_features=16, out_features=3072, bias=False)
+                        )
+                        (lora_embedding_A): ParameterDict()
+                        (lora_embedding_B): ParameterDict()
+                        (lora_magnitude_vector): ModuleDict()
+                      )
+                      (activation_fn): SiLU()
+                    )
+                    (input_layernorm): Phi3RMSNorm((3072,), eps=1e-05)
+                    (post_attention_layernorm): Phi3RMSNorm((3072,), eps=1e-05)
+                    (resid_attn_dropout): Dropout(p=0.0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0.0, inplace=False)
+                  )
+                )
+              )
+              (norm): Phi3RMSNorm((3072,), eps=1e-05)
+              (rotary_emb): Phi3RotaryEmbedding()
+            )
+            (lm_head): DecoupledLinear(
+              in_features=3072, out_features=32012, additional_out_features=3, bias=True, partially_freeze=True
+              (additional_fc): lora.Linear(
+                (base_layer): Linear(in_features=3072, out_features=3, bias=True)
+                (lora_dropout): ModuleDict(
+                  (default): Dropout(p=0.05, inplace=False)
+                )
+                (lora_A): ModuleDict(
+                  (default): Linear(in_features=3072, out_features=16, bias=False)
+                )
+                (lora_B): ModuleDict(
+                  (default): Linear(in_features=16, out_features=3, bias=False)
+                )
+                (lora_embedding_A): ParameterDict()
+                (lora_embedding_B): ParameterDict()
+                (lora_magnitude_vector): ModuleDict()
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)
+Start running training on rank 0.
+  0%|          | 0/334 [00:00<?, ?it/s][rank0]:[2025-05-09 08:45:55,613] [8/0] torch._dynamo.output_graph: [WARNING] nn.Module state_dict and backward hooks are not yet supported by torch.compile, but were detected in your model and will be silently ignored. See https://pytorch.org/docs/master/compile/nn-module.html for more information and limitations.
+  0%|          | 0/334 [03:06<?, ?it/s]
+Traceback (most recent call last):
+  File "/workspace/moment-retrieval-with-llm/LAVIS/open_flamingo/train/instruction_finetune.py", line 303, in <module>
+    main()
+  File "/workspace/moment-retrieval-with-llm/LAVIS/open_flamingo/train/instruction_finetune.py", line 285, in main
+    finetune_one_epoch(
+  File "/workspace/moment-retrieval-with-llm/LAVIS/open_flamingo/train/train_utils.py", line 128, in finetune_one_epoch
+    loss = compute_loss_fn(
+  File "/workspace/moment-retrieval-with-llm/LAVIS/open_flamingo/train/losses.py", line 123, in __call__
+    loss = model(
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/parallel/distributed.py", line 1519, in forward
+    else self._run_ddp_forward(*inputs, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/parallel/distributed.py", line 1355, in _run_ddp_forward
+    return self.module(*inputs, **kwargs)  # type: ignore[index]
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/eval_frame.py", line 328, in _fn
+    return fn(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/peft/peft_model.py", line 816, in forward
+    with self._enable_peft_forward_hooks(*args, **kwargs):
+  File "/usr/local/lib/python3.10/dist-packages/peft/peft_model.py", line 818, in <resume in forward>
+    return self.get_base_model()(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/eval_frame.py", line 487, in catch_errors
+    return hijacked_callback(frame, cache_entry, hooks, frame_state)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/convert_frame.py", line 641, in _convert_frame
+    result = inner_convert(frame, cache_size, hooks, frame_state)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/convert_frame.py", line 133, in _fn
+    return fn(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/convert_frame.py", line 389, in _convert_frame_assert
+    return _compile(
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/convert_frame.py", line 569, in _compile
+    guarded_code = compile_inner(code, one_graph, hooks, transform)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/utils.py", line 189, in time_wrapper
+    r = func(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/convert_frame.py", line 491, in compile_inner
+    out_code = transform_code_object(code, transform)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/bytecode_transformation.py", line 1028, in transform_code_object
+    transformations(instructions, code_options)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/convert_frame.py", line 458, in transform
+    tracer.run()
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/symbolic_convert.py", line 2074, in run
+    super().run()
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/symbolic_convert.py", line 724, in run
+    and self.step()
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/symbolic_convert.py", line 688, in step
+    getattr(self, inst.opname)(inst)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/symbolic_convert.py", line 439, in wrapper
+    self.output.compile_subgraph(self, reason=reason)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/output_graph.py", line 857, in compile_subgraph
+    self.compile_and_call_fx_graph(tx, pass2.graph_output_vars(), root)
+  File "/usr/lib/python3.10/contextlib.py", line 79, in inner
+    return func(*args, **kwds)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/output_graph.py", line 957, in compile_and_call_fx_graph
+    compiled_fn = self.call_user_compiler(gm)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/utils.py", line 189, in time_wrapper
+    r = func(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/output_graph.py", line 1024, in call_user_compiler
+    raise BackendCompilerFailed(self.compiler_fn, e).with_traceback(
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/output_graph.py", line 1009, in call_user_compiler
+    compiled_fn = compiler_fn(gm, self.example_inputs())
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/backends/distributed.py", line 291, in compile_fn
+    return self.backend_compile_fn(gm, example_inputs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/repro/after_dynamo.py", line 117, in debug_wrapper
+    compiled_gm = compiler_fn(gm, example_inputs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/__init__.py", line 1568, in __call__
+    return compile_fx(model_, inputs_, config_patches=self.config)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/compile_fx.py", line 961, in compile_fx
+    return compile_fx(
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/compile_fx.py", line 1150, in compile_fx
+    return aot_autograd(
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/backends/common.py", line 55, in compiler_fn
+    cg = aot_module_simplified(gm, example_inputs, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_functorch/aot_autograd.py", line 3844, in aot_module_simplified
+    assert name in mod._param_name_to_source, f"{name} not found."
+torch._dynamo.exc.BackendCompilerFailed: backend='compile_fn' raised:
+AssertionError: L__self___vision_tokenizer._checkpoint_wrapped_module.latents not found.
+
+Set TORCH_LOGS="+dynamo" and TORCHDYNAMO_VERBOSE=1 for more information
+
+
+You can suppress this exception and fall back to eager by setting:
+    import torch._dynamo
+    torch._dynamo.config.suppress_errors = True
+
+[2025-05-09 08:46:40,935] torch.distributed.elastic.multiprocessing.api: [ERROR] failed (exitcode: 1) local_rank: 0 (pid: 42904) of binary: /usr/bin/python
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/usr/local/lib/python3.10/dist-packages/torch/distributed/run.py", line 810, in <module>
+    main()
+  File "/usr/local/lib/python3.10/dist-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 346, in wrapper
+    return f(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/distributed/run.py", line 806, in main
+    run(args)
+  File "/usr/local/lib/python3.10/dist-packages/torch/distributed/run.py", line 797, in run
+    elastic_launch(
+  File "/usr/local/lib/python3.10/dist-packages/torch/distributed/launcher/api.py", line 134, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+  File "/usr/local/lib/python3.10/dist-packages/torch/distributed/launcher/api.py", line 264, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+open_flamingo/train/instruction_finetune.py FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2025-05-09_08:46:40
+  host      : 5a5e9de17c8a
+  rank      : 0 (local_rank: 0)
+  exitcode  : 1 (pid: 42904)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================
