@@ -14,8 +14,6 @@
 # **/*.yaml
 *.yml
 
-*.ipynb
-
 wandb/
 
 # Byte-compiled / optimized / DLL files

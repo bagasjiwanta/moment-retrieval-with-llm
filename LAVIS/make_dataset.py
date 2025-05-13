@@ -40,19 +40,19 @@ datasets/<charades-sta or qvhighlights>
  "image": "coco/train2017/000000033471.jpg",
  "conversations": [
  {
- "from": "human",
+ "from": "user",
  "value": "<image>\nWhat are the colors of the bus in the image?"
  },
  {
- "from": "gpt",
+ "from": "assistant",
  "value": "The bus in the image is white and red."
  },
  {
- "from": "human",
+ "from": "user",
  "value": "What feature can be seen on the back of the bus?"
  },
  {
- "from": "gpt",
+ "from": "assistant",
  "value": "The back of the bus features an advertisement."
  },
  ...
@@ -178,14 +178,14 @@ def process_one_qvh(data: dict, num_frames: int, prompt_style: int, video_summar
         example = prompt["example"].format(demo=demo, num_frames=num_frames)
     else:
         example = ""
-    gpt = "".join([str(b) for b in binary_mask])
-    human = prompt["instruction"].format(
+    assistant = "".join([str(b) for b in binary_mask])
+    user = prompt["instruction"].format(
         num_frames=num_frames,
         activity=activity,
     )
-    human = example + human
-    human = BASE_PROMPT_TEMPLATE.format(prompt=human, video=video_tokens)
-    conversations = [{"from": "human", "value": human}, {"from": "gpt", "value": gpt}]
+    user = example + user
+    user = BASE_PROMPT_TEMPLATE.format(prompt=user, video=video_tokens)
+    conversations = [{"role": "user", "content": user}, {"role": "assistant", "content": assistant}]
     return {
             "id": data["qid"],
             "vid": data["vid"],
@@ -226,7 +226,7 @@ def process_qvh(dirs, num_frames: int, prompt_style: int, num_workers: int, pret
         process_one_video, vid_in_dir=vid_in_dir, vid_out_dir=vid_out_dir, num_frames=num_frames
     )
     video_summaries = {}
-    video_summaries_serial = {}
+    video_summaries_serialized = {}
     with multiprocessing.Pool(num_workers) as pool:
         iterator = tqdm(
             pool.imap(partial_process_one_video, video_names),
@@ -238,13 +238,13 @@ def process_qvh(dirs, num_frames: int, prompt_style: int, num_workers: int, pret
                 "video_times": summary['video_times'],
                 "image_out_filenames": summary['image_out_filenames']
             }
-            video_summaries_serial[vid] = {
+            video_summaries_serialized[vid] = {
                 "video_times" : summary['video_times_serial'],
                 "image_out_filenames": summary['image_out_filenames']
             }
 
     with open("video_summaries.json", "w") as f_out:
-        f_out.write(json_dumps(video_summaries_serial, indent=2))
+        f_out.write(json_dumps(video_summaries_serialized, indent=2))
     
     for i in range(len(splits)):
         raw = split_data[i]

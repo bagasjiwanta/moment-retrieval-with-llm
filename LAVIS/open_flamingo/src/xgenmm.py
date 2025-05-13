@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple, Union
 import os
 
 from .helpers import PerceiverResampler
-from .vlm import VLMWithLanguageStream
+from .vlm import VLMWithLanguageStream, ForwardOutput
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
 '''
@@ -101,6 +101,114 @@ class XGenMMPerceiver(VLMWithLanguageStream):
         Kosmos applies 0.01 weight deacy to everything
         """
         return True
+
+    def pre_forward(
+        self,
+        vision_x: Optional[torch.Tensor],
+        lang_x: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
+        labels: Optional[torch.Tensor] = None,
+        image_size: Optional[Tuple] = None,
+        past_key_values: Optional[
+            List[Union[torch.Tensor, Tuple[torch.Tensor]]]
+        ] = None,
+        past_media_locations: Optional[torch.Tensor] = None,
+        past_vision_tokens: Optional[torch.Tensor] = None,
+        use_cache: Optional[bool] = False,
+        **kwargs,
+    ) -> ForwardOutput:
+        """
+        Args:
+            vision_x: Vision input
+                shape (B, T_img, F, C, H, W) with F=1
+                only F = 1 is supported (single-frame videos)
+                if T_img > the number of media tokens in the corresponding input_ids (lang_x),
+                only the first number of media tokens in lang_x are used
+            lang_x: Language input ids, with media tokens denoting where
+                visual media should be inserted.
+                shape (B, T_txt)
+            attention_mask: Attention mask. Defaults to None.
+            labels: Labels. Defaults to None.
+                shape (B, T_txt)
+            past_key_values (Tuple[torch.Tensor]], optional): Past key value pairs for each of the T_txt previous tokens in the language model. Defaults to None.
+                list of length = number of decoder layers in the LM
+                exact implementation depends on LM, see Hugging Face docs
+            past_media_locations (torch.Tensor, optional): boolean mask denoting which of the previous T_txt tokens were media tokens. Defaults to None.
+                shape (B, T_txt)
+            past_vision_tokens (torch.Tensor, optional): Previous vision tokens. Defaults to None.
+            use_cache (Optional[bool], optional): Whether to use cache. Defaults to False.
+                If True, includes key_values, media_locations, and vision_tokens in the output.
+        """
+        assert not (past_vision_tokens is None) ^ (
+            past_media_locations is None
+        ), "past_vision_tokens and past_media_locations must both be None or both be not None"
+
+        # convert pixels to vision tokens
+        vision_attention_mask = None
+        if vision_x is not None:
+            if self.image_aspect_ratio == 'anyres':
+                input_dict = dict(image=vision_x, image_size=image_size)
+                vision_features, vision_attn_masks = self._encode_vision_x_anyres(input_dict, lang_x.device)
+            else:
+                vision_features = self._encode_vision_x(vision_x=vision_x)
+                vision_attn_masks = None
+            if self.anyres_patch_sampling:
+                split_sizes = [feature.shape[0] for feature in vision_features]
+                # Nested splits for multi-image samples.
+                if isinstance(vision_x[0], list):
+                    nt_images = [len(images) for images in vision_x]
+                    split_split_sizes = []
+                    img_id = 0
+                    for nt in nt_images:
+                        split_split_sizes.append(split_sizes[img_id:img_id+nt])
+                        img_id += nt
+                else:
+                    nt_images = [1] * len(vision_x)
+                    split_split_sizes = split_sizes
+                vision_features = torch.cat(vision_features, dim=0)
+                vision_features = vision_features[:, None, None, :, :] # Expand dimensions.
+                vision_attn_masks = torch.cat(vision_attn_masks, dim=0)
+            vision_tokens = self.vision_tokenizer(vision_features, vision_attn_masks)
+            
+            # Post-processing: Split the batches into groups of patches and concatenate them together.
+            if self.anyres_patch_sampling:
+                # assert isinstance(vision_x, list)
+                if isinstance(vision_x[0], list):
+                    vision_token_groups = torch.split(vision_tokens, list(sum(nt_img) for nt_img in split_split_sizes), dim=0)
+                    vision_tokens = []
+                    
+                    for sample_id, patch_vis_tokens in enumerate(vision_token_groups):
+                        patch_vis_token_groups =  torch.split(patch_vis_tokens, split_split_sizes[sample_id], dim=0) # [Np*nt, 1, v, d] -> [[Np_t, 1, v, d], ...]
+                        flatten_vision_tokens = []
+                        # padded_attn_masks = []
+                        for image_vis_token in patch_vis_token_groups:
+                            image_vis_token = image_vis_token.flatten(0, 2) # [Np, 1, v, d] -> [Np*v, d]
+                            flatten_vision_tokens.append(image_vis_token)
+                        vision_tokens_i = flatten_vision_tokens
+                        vision_tokens.append(vision_tokens_i)
+                else:
+                    vision_token_groups = torch.split(vision_tokens, split_sizes, dim=0)
+                    vision_tokens = []
+                    for patch_vis_tokens in vision_token_groups:
+                        patch_vis_tokens = patch_vis_tokens.flatten(0, 2) # [Np, 1, v, d] -> [Np*v, d]
+                        vision_tokens.append(patch_vis_tokens.unsqueeze(0)) # Add the nt dimension.
+        else:
+            vision_tokens = None
+
+        # fuse the vision and language tokens
+        new_inputs = self._prepare_inputs_for_forward(
+            vision_tokens=vision_tokens,
+            lang_x=lang_x,
+            attention_mask=attention_mask,
+            vision_attention_mask=vision_attention_mask,
+            labels=labels,
+            past_key_values=past_key_values,
+            past_media_locations=past_media_locations,
+            padding_side="right",
+            past_vision_tokens=past_vision_tokens,
+        )
+        return new_inputs
+
     
     def forward(
         self,

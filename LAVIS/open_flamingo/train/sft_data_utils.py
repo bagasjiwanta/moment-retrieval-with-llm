@@ -13,7 +13,7 @@ import torch
 import torch.distributed as dist
 from torch.utils.data import Dataset, DataLoader, DistributedSampler, Sampler
 import transformers
-from typing import TypedDict, Tuple
+from typing import TypedDict, Tuple, LiteralString, Literal
 
 from PIL import Image
 
@@ -42,14 +42,11 @@ class PreprocessPhi3New(TypedDict):
     """
 
     input_ids: torch.Tensor
-    labels: torch.Tensor
+    labels: Optional[torch.Tensor]
 
 
-def preprocess_phi_3_new(
-    sources,
-    tokenizer: transformers.PreTrainedTokenizer,
-) -> PreprocessPhi3New:
-    role_mapping = {"human": "user", "gpt": "assistant"}
+def preprocess_phi_3_new(sources, tokenizer: transformers.PreTrainedTokenizer, split="train") -> PreprocessPhi3New:
+    # role_mapping = {"human": "user", "gpt": "assistant"}
     roles = ("<|user|>", "<|assistant|>")
     sep = "<s>"
     sep2 = "<|end|>"
@@ -57,24 +54,12 @@ def preprocess_phi_3_new(
     # Apply prompt templates
     conversations = []
     for i, source in enumerate(sources):
-        # TODO: add system prompt is there's not any in source.
-
-        # Update key names
-        for i, rnd in enumerate(source):
-            if "from" in rnd:
-                if rnd["from"] in ["human", "gpt"]:
-                    rnd["role"] = role_mapping[rnd.pop("from")]
-                else:
-                    rnd["role"] = rnd.pop("from")
-            if "value" in rnd:
-                rnd["content"] = rnd.pop("value")
         # Apply chat template
         tokenizer.chat_template = "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') %}{{'<|user|>' + '\n' + message['content'] + '<|end|>' + '\n' + '<|assistant|>' + '\n'}}{% elif message['role'] == 'system' %}{{ '<|system|>' + '\n' + message['content'] + '<|end|>' + '\n'}}{% elif (message['role'] == 'assistant') %}{{message['content'] + '<|end|>' + '\n'}}{% endif %}{% endfor %}"
         chat_conv = tokenizer.apply_chat_template(source, tokenize=False)
         chat_conv = chat_conv.replace(tokenizer.bos_token, "")
 
         conversations.append(chat_conv)
-
     # Tokenize conversations
     if tokenizer.model_max_length > TOKENIZER_MAX_LENGTH:
         max_len = TOKENIZER_MAX_LENGTH
@@ -88,6 +73,9 @@ def preprocess_phi_3_new(
         max_length=max_len,
         truncation=True,
     ).input_ids
+
+    if split != "train":
+        return dict(input_ids=input_ids, labels=None)
 
     targets = input_ids.clone()
 
@@ -142,24 +130,19 @@ def preprocess_phi_3_new(
     )
 
 
-def preprocess(
-    sources: Sequence[str],
-    tokenizer: transformers.PreTrainedTokenizer,
-    conv_template_name: Optional[str] = "phi_3",
-) -> PreprocessPhi3New:
-    """
-    Given a list of sources, each is a conversation list. This transform:
-    1. Add signal '### ' at the beginning each sentence, with end signal '\n';
-    2. Concatenate conversations together;
-    3. Tokenize the concatenated conversation;
-    4. Make a deepcopy as the target. Mask human words with IGNORE_INDEX.
-    """
-    # if conv_template_name is not None and conv_template_name in conversation_lib.conv_templates.keys():
-        # Use the specified preproseccing func.
-    conv_template = conversation_lib.conv_templates[conv_template_name]
-    # else:
-    #     conv_template = conversation_lib.default_conversation
-    return preprocess_phi_3_new(sources, tokenizer)
+class Conversation(TypedDict):
+    role: Literal["user", "system", "assistant"]
+    content: str
+
+
+class LazySupervisedRawData(TypedDict):
+    id: int
+    vid: str
+    image: List[str]
+    conversations: List[Conversation]
+    video_timestamps: List[int] | None
+    relevant_windows: List[int] | None
+    duration: int | None
 
 
 class LazySupervisedDatasetOutput(TypedDict):
@@ -171,7 +154,7 @@ class LazySupervisedDatasetOutput(TypedDict):
     duration: Optional[int]
     qid: Optional[int]
     vid: Optional[str]
-    labels: torch.Tensor
+    labels: torch.Tensor | str
     input_ids: torch.Tensor
     image_size: List[int]
 
@@ -211,7 +194,7 @@ class LazySupervisedDataset(Dataset):
         self.tokenizer = tokenizer
         self.image_processor = image_processor
         self.conv_template_name = data_args.conv_template_name
-        self.list_data_dict = list_data_dict
+        self.list_data_dict: List[LazySupervisedRawData] = list_data_dict
         self.data_args = data_args
         self.split = split
         self.anyres_grids = []
@@ -230,14 +213,14 @@ class LazySupervisedDataset(Dataset):
         length_list = []
         for sample in self.list_data_dict:
             img_tokens = 128 if "image" in sample else 0
-            length_list.append(sum(len(conv["value"].split()) for conv in sample["conversations"]) + img_tokens)
+            length_list.append(sum(len(conv["content"].split()) for conv in sample["conversations"]) + img_tokens)
         return length_list
 
     @property
     def modality_lengths(self):
         length_list = []
         for sample in self.list_data_dict:
-            cur_len = sum(len(conv["value"].split()) for conv in sample["conversations"])
+            cur_len = sum(len(conv["content"].split()) for conv in sample["conversations"])
             cur_len = cur_len if "image" in sample else -cur_len
             length_list.append(cur_len)
         return length_list
@@ -253,59 +236,33 @@ class LazySupervisedDataset(Dataset):
             return success, None, None
         processor = self.image_processor
         img_size = image.size
-        # if self.data_args.image_aspect_ratio == "pad":
-
-        #     def expand2square(pil_img, background_color):
-        #         width, height = pil_img.size
-        #         if width == height:
-        #             return pil_img
-        #         elif width > height:
-        #             result = Image.new(pil_img.mode, (width, width), background_color)
-        #             result.paste(pil_img, (0, (width - height) // 2))
-        #             return result
-        #         else:
-        #             result = Image.new(pil_img.mode, (height, height), background_color)
-        #             result.paste(pil_img, ((height - width) // 2, 0))
-        #             return result
-
-        #     # FIXME: Hardcoded workaround to work with torchvision.Compose()
-        #     image = expand2square(image, tuple(int(x * 255) for x in processor.transforms[-1].mean))
-        #     image = processor(image)  # FIXME: whether to take the 0-th item.
-        # elif self.data_args.image_aspect_ratio == "anyres":
-        # Return image shape: [N_patch, C, H, W]
         image = process_anyres_image(image, processor, self.anyres_grids)  # always use anyres
-        # else:
-            # image = processor(image)
-
         return success, image, img_size
 
     def __getitem__(self, i) -> LazySupervisedDatasetOutput:
-        sources = self.list_data_dict[i]
-        # keep_sample, sources = self._check_img_token_nums(sources)
-        # if not keep_sample:
-        #     return self.__getitem__(i + 1)
+        sources: LazySupervisedRawData = self.list_data_dict[i]
         if isinstance(i, int):
-            sources = [sources]
+            sources: List[LazySupervisedRawData] = [sources]
         assert len(sources) == 1, "Don't know why it is wrapped to a list"  # FIXME
         # Add the system prompt.
         system_round = {
-            "from": "system",
-            "value": "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.",
+            "role": "system",
+            "content": "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.",
         }
-        if sources[0]["conversations"][0]["from"] != "system":
+        source = sources
+        if sources[0]["conversations"][0]["role"] != "system":
             sources[0]["conversations"] = [system_round] + sources[0]["conversations"]
-
         qid = sources[0]["id"]
-        if not self.split == "train":
+
+        if not self.split == "train":  # no need for duration and vid in train as the number of tokens - 1 == duration
             duration = sources[0]["duration"]
             vid = sources[0]["vid"]
+            answer = sources[0]["conversations"][-1]["content"][:]
 
         # if "image" in sources[0]:
         image_file = sources[0]["image"]
+        assert type(image_file) in (list, str), f"Unknown image_file type: {type(image_file)}"
         if isinstance(image_file, list):
-            # # FIXME: Skipping samples with more than 4 images to avoid OOM issue. Done
-            # if len(image_file) > 30:
-            #     return self.__getitem__(i + 1)
             image = []
             img_size = []
             for single_image in image_file:
@@ -315,27 +272,28 @@ class LazySupervisedDataset(Dataset):
                     return self.__getitem__(i + 1)
                 image.append(image_i)
                 img_size.append(img_size_i)
-        elif isinstance(image_file, str):
+        else:  # isinstance(image_file, str)
             success, image, img_size = self._process_single_image(image_file)
             if not success:
                 # Skip the entire sample if one of the images can't be opened.
                 return self.__getitem__(i + 1)
+        if self.split == "train":
+            sources = copy.deepcopy([e["conversations"] for e in sources])
         else:
-            raise NotImplementedError(f"Unknown image_file type: {image_file}")
-        sources = copy.deepcopy([e["conversations"] for e in sources])
+            sources = copy.deepcopy([e['conversations'][:-1] for e in sources])
+        
 
-        data_dict = preprocess(sources, self.tokenizer, conv_template_name=self.conv_template_name)
+        data_dict = preprocess_phi_3_new(sources, self.tokenizer, self.split)
         if isinstance(i, int):
-            data_dict = dict(
-                input_ids=data_dict["input_ids"][0],
-                labels=data_dict["labels"][0],
-            )
-            data_dict["qid"] = qid
-            if not self.split == "train":
+            data_dict["input_ids"] = data_dict["input_ids"][0]
+            if self.split == "train":
+                data_dict["labels"] = data_dict["labels"][0]
+            else:
+                data_dict["labels"] = answer
                 data_dict["duration"] = duration
                 data_dict["vid"] = vid
+            data_dict["qid"] = qid
 
-        # image exist in the data
         # if has_image: image always exists
         if isinstance(image, list):
             # Multi-image, each image can be of 4-dim (anyres) or 3-dim (base res)
@@ -408,18 +366,33 @@ class DataCollatorForSupervisedDataset(object):
         self.tokenizer: transformers.PreTrainedTokenizer = tokenizer
         self.image_aspect_ratio: str = image_aspect_ratio
 
-    def __call__(self, instances: Sequence[Dict]) -> DataCollatorOutput:
+    def __call__(self, instances: Sequence[LazySupervisedDatasetOutput]) -> DataCollatorOutput:
         input_ids, labels = tuple([instance[key] for instance in instances] for key in ("input_ids", "labels"))
-        input_ids = torch.nn.utils.rnn.pad_sequence(
-            input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
-        )
-        labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=IGNORE_INDEX)
+        print(self.split)
+        if self.split == "train":
+            input_ids = torch.nn.utils.rnn.pad_sequence(
+                input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
+            )
+            labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=IGNORE_INDEX)
+            labels = labels[:, : self.tokenizer.model_max_length]
+            attention_mask = input_ids.ne(self.tokenizer.pad_token_id)
+        else:
+            print(self.split)
+            padded = self.tokenizer.pad(
+                {"input_ids": input_ids},
+                padding=True,
+                padding_side="left",
+                return_tensors="pt",
+                max_length=self.tokenizer.model_max_length,
+            )
+            input_ids = padded["input_ids"]
+            attention_mask = padded["attention_mask"]
+
         input_ids = input_ids[:, : self.tokenizer.model_max_length]
-        labels = labels[:, : self.tokenizer.model_max_length]
         batch = dict(
             input_ids=input_ids,
             labels=labels,
-            attention_mask=input_ids.ne(self.tokenizer.pad_token_id),
+            attention_mask=attention_mask,
         )
 
         if not self.split == "train":

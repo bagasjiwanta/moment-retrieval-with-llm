@@ -22,8 +22,6 @@ MODEL_FAMILY_TO_CLASS = {
 }
 SUPPORTED_MODEL_FAMILIES = MODEL_FAMILY_TO_CLASS.keys()
 
-def _convert_image_to_rgb(image):
-    return image.convert("RGB")
 
 def create_model_and_transforms(
     vision_encoder_path: str,
